@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "cli"
+name = "rare"
 version = "0.1.0"
 dependencies = [
  "typed-arena",
