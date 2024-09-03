@@ -12,7 +12,7 @@ use crate::{
     postfix_converter::PostfixConverter,
 };
 
-struct Parser {
+pub struct Parser {
     postfix_stack: Vec<TokenType>,
     nfa_stack: Vec<Nfa>,
 }
@@ -33,7 +33,7 @@ impl Parser {
 
         Ok(Self {
             postfix_stack: pfix_stack,
-            nfa_stack: Vec::with_capacity(3),
+            nfa_stack: vec![Nfa::new(TokenType::Empty)],
         })
     }
 
@@ -46,7 +46,11 @@ impl Parser {
             }
         }
 
-        Regex::from_nfa(self.nfa_stack.pop().unwrap())
+        // if something throws here, I must handle these cases.
+        let last_state = self.nfa_stack.pop().unwrap();
+        let mut ret = self.nfa_stack.pop().unwrap();
+        ret.merge(last_state);
+        Regex::from_nfa(ret)
     }
 
     fn handle_symbol(&mut self, input: TokenType) -> Result<(), String> {
