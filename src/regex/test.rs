@@ -4,7 +4,7 @@ use super::*;
 
 #[test]
 fn test_regex_matcher_simple() {
-    let regex = "ab*";
+    let regex = "ab*|c*";
     println!("Regex: {regex}");
 
     let mut parser = match Parser::new(regex) {
@@ -14,5 +14,6 @@ fn test_regex_matcher_simple() {
 
     let ret_ex = parser.parse();
     ret_ex.nfa.print_states();
-    // assert!(ret_ex.is_match("ab"));
+    assert!(ret_ex.is_match("abbbbbb"));
+    assert!(ret_ex.is_match("ccccccccc"));
 }
