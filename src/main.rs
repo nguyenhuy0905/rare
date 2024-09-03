@@ -1,4 +1,4 @@
-use std::{io::{self, Read}, process::exit};
+use std::{io::{self, BufRead}, process::exit};
 
 use parser::Parser;
 
@@ -13,26 +13,22 @@ fn main() -> io::Result<()> {
         panic!("Expected 1 argument")
     }
 
-    let mut stdin = io::stdin();
-    let mut input = String::new();
-
-    stdin.read_to_string(&mut input)?;
-
     let mut parser = match Parser::new(&args[1]) {
+        Ok(p) => p,
         Err(msg) => {
-            println!("Invalid regex: {msg}");
+            eprintln!("Error: {msg}");
             exit(1);
-        },
-        Ok(ret) => ret,
+        }
     };
 
     let regex = parser.parse();
-    if !regex.is_match(&input) {
-        println!("Didn't match");
-        exit(1);
+
+    let stdin = io::stdin();
+    while let Some(Ok(input)) = stdin.lock().lines().next() {
+        if regex.is_match(&input) {
+            println!("{input}");
+        }
     }
-    
-    println!("Match");
 
     Ok(())
 }
