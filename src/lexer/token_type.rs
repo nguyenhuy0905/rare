@@ -52,13 +52,12 @@ impl TokenType {
     /// Returns whether the next token needs to be preceded by concatenation, if that token is not
     /// a symbol, or is the left parentheses.
     ///
-    /// Only beam and LParen shouldn't be concatenated, because they signal the start of a new
-    /// string. The other token types may be a continuation of a string, so concatentation may be
-    /// necessary.
-    pub(in crate) fn need_concat_next(&self) -> bool {
+    /// Beam and LParen shouldn't be concatenated, because they signal the start of a new string.
+    /// The other token types may be a continuation of a string, so concatentation may be necessary.
+    pub(crate) fn need_concat_next(&self) -> bool {
         !matches!(
             self,
-            TokenType::LParen | TokenType::Beam
+            TokenType::LParen | TokenType::Beam 
         )
     }
 }

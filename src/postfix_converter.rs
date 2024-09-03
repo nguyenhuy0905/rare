@@ -39,8 +39,8 @@ impl<'a> PostfixConverter<'a> {
             }
         }
 
-        for token in self.symbol_stack.iter() {
-            self.postfix_token_list.push(token.clone());
+        while let Some(token) = self.symbol_stack.pop() {
+            self.postfix_token_list.push(token);
         }
 
         self.done = true;
@@ -62,6 +62,7 @@ impl<'a> PostfixConverter<'a> {
     }
 
     fn push_symbol(&mut self, token: TokenType) -> Result<(), String> {
+        // TODO: generalize parts of this operation, using some sort of precedence mechanism
         match token {
             TokenType::LParen => {
                 self.symbol_stack.push(token);
@@ -73,9 +74,8 @@ impl<'a> PostfixConverter<'a> {
                     }
                     self.postfix_token_list.push(pop_token);
                 }
-                if self.infix_token_stack.is_empty() {
-                    return Err("Missing a (".to_owned());
-                }
+                self.print_postfix_stack();
+                return Err("Missing a (".to_owned());
             }
             TokenType::Concat => match self.symbol_stack.last() {
                 Some(TokenType::Concat) => {
@@ -84,15 +84,15 @@ impl<'a> PostfixConverter<'a> {
                 None | Some(_) => self.symbol_stack.push(token.clone()),
             },
             TokenType::Beam => match self.symbol_stack.last() {
+                None | Some(TokenType::LParen) => {
+                    self.symbol_stack.push(token);
+                }
                 Some(_) => {
                     self.postfix_token_list.push(
                         self.symbol_stack
                             .pop()
                             .expect("Trust me this can never go wrong"),
                     );
-                    self.symbol_stack.push(token);
-                }
-                None => {
                     self.symbol_stack.push(token);
                 }
             },

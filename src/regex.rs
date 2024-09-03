@@ -47,7 +47,11 @@ impl Regex {
             }
         }
 
-        false
+        // creep up 1 letter
+        if string.is_empty() {
+            return false;
+        }
+        self.is_match(&string[1..])
     }
 }
 

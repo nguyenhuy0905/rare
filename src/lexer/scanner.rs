@@ -30,9 +30,13 @@ impl<'a> Scanner<'a> {
     pub fn scan(&mut self) {
         for input_char in self.input.chars() {
             let ret_token = (self.curr_scan_fn)(self, input_char);
-            let need_concat = ret_token.need_concat_next();
+            let mut need_concat = ret_token.need_concat_next();
             match ret_token {
-                TokenType::Escape => {}
+                TokenType::Escape => {
+                    // escape isn't really a character, so gracefully set need_concat_next back to
+                    // that of the last character.
+                    need_concat = self.concat_next;
+                }
                 TokenType::Character(_) | TokenType::Dot | TokenType::LParen => {
                     if self.concat_next {
                         self.token_list.push(TokenType::Concat);

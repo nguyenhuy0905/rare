@@ -1,11 +1,10 @@
 use crate::regex::Regex;
 
-pub(in crate) mod nfa;
+pub(crate) mod nfa;
 mod state;
 
 use nfa::Nfa;
 use state::State;
-
 
 use crate::{
     lexer::{scanner::Scanner, token_type::TokenType},
@@ -90,7 +89,6 @@ impl Parser {
             Some(ret) => ret,
         };
 
-        
         let first_end = first_nfa.states.len();
         let mut push_nfa = Nfa::new(TokenType::Empty);
 
@@ -119,21 +117,16 @@ impl Parser {
     }
 
     fn handle_star(&mut self) -> Result<(), String> {
-        let last_nfa = match self.nfa_stack.last_mut() {
-            None => return Err(String::from("Error, star (*) isn't preceded by any value")),
-            Some(ret) => ret,
-        };
+        let star_nfa = self.nfa_stack.pop().unwrap();
+        let mut new_nfa = Nfa::new(TokenType::Empty);
 
-        // traverses back to the start state when input equals the start's token type.
-        // otherwise, go to the next state when that is empty.
-        let end_index: usize = last_nfa.end;
-        let start_token = last_nfa.states.first().unwrap().token.clone();
-        let end_state = last_nfa.states.last_mut().unwrap();
+        new_nfa.merge(star_nfa);
 
-        end_state.add_edge(TokenType::Empty, end_index + 1);
-        end_state.add_edge(start_token, 0);
-        last_nfa.add_state(State::new(TokenType::Empty));
+        new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
+        new_nfa.merge(Nfa::new(TokenType::Empty));
+        new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
+        self.nfa_stack.push(new_nfa);
         Ok(())
     }
 }

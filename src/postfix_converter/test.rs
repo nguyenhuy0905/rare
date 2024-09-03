@@ -3,6 +3,30 @@ use crate::postfix_converter::*;
 
 #[test]
 fn simple_postfix_test() {
+    let mut test_scanner = Scanner::new("ab*|bc*");
+    test_scanner.scan();
+    test_scanner.print_tokens();
+    println!();
+
+    let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
+    let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");
+    test_pfix_conv.print_postfix_stack();
+}
+
+#[test]
+fn simple_postfix_test_2() {
+    let mut test_scanner = Scanner::new("\\.c(c|h)");
+    test_scanner.scan();
+    test_scanner.print_tokens();
+    println!();
+
+    let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
+    let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");
+    test_pfix_conv.print_postfix_stack();
+}
+
+#[test]
+fn complex_postfix_test() {
     let mut test_scanner = Scanner::new("z(abc?|c)+\\.?.*");
     test_scanner.scan();
 
