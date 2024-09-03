@@ -20,6 +20,12 @@ into a nondeterministic finite automaton (NFA).
 If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
 
+## What does it support currently?
+
+- Grouping expressions with ().
+- Kleene's star \*.
+- Or boolean |.
+
 ## How to use
 
 - Here's a code example:
@@ -44,6 +50,7 @@ assert!(regex.is_match(".cpp"));
 ## TODO
 
 - Add the remaining notations:
+  - Dot (.).
   - Plus (+). Aka, one or more.
   - Question mark (?), aka, zero or one.
 
