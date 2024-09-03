@@ -14,7 +14,4 @@ fn simple_parse_test() {
     let regex_handle = parser.parse();
     println!("Regex string: {rstr}");
     regex_handle.nfa.print_states();
-
-    let mstr = "ab";
-    println!("Match with {mstr}: {}", regex_handle.match_string(mstr));
 }
