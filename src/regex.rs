@@ -1,23 +1,24 @@
-use std::cell::RefCell;
-
+use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
 
 // just a nicer name for the NFA
 pub struct Regex {
-    pub(in crate) nfa: Nfa,
-    pub(in crate) ref_stack: RefCell<Vec<usize>>,
+    pub(crate) nfa: Nfa,
 }
 
 impl Regex {
-    pub(in crate) fn from_nfa(nfa: Nfa) -> Self {
+    pub(crate) fn from_nfa(nfa: Nfa) -> Self {
         Self {
             nfa,
-            ref_stack: RefCell::new(vec![0]),
         }
     }
 
-    pub fn match_string(&self, _string: &str) -> bool {
+    pub fn is_match(&self, string: & str) -> bool {
+        let mut ref_stack: Vec<usize> = vec![0];
+        // TODO: finish matching
+
         false
     }
 }
 
+mod test;

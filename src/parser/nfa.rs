@@ -46,8 +46,12 @@ impl Nfa {
         self.states.pop()
     }
 
-    pub fn get_mut_state(&mut self, index: usize) -> Option<&mut State> {
+    pub(crate) fn get_mut_state(&mut self, index: usize) -> Option<&mut State> {
         self.states.get_mut(index)
+    }
+
+    pub(crate) fn get_state(&self, index: usize) -> Option<&State> {
+        self.states.get(index)
     }
 
     pub fn print_states(&self) {
