@@ -1,15 +1,38 @@
-mod lexer;
-use lexer::scanner::Scanner;
+use std::{io::{self, BufRead, Read}, process::exit};
 
-fn main() {
+use parser::Parser;
+
+mod lexer;
+mod postfix_converter;
+mod parser;
+mod regex;
+
+fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     if args.len() != 2 {
         panic!("Expected 1 argument")
     }
 
-    let mut scanner: Scanner = Scanner::new(&args[1]);
-    scanner.scan();
-    let scanner = scanner;
+    let mut stdin = io::stdin();
+    let mut input = String::new();
 
-    scanner.print_tokens();
+    stdin.read_to_string(&mut input)?;
+
+    let mut parser = match Parser::new(&args[1]) {
+        Err(msg) => {
+            println!("Invalid regex: {msg}");
+            exit(1);
+        },
+        Ok(ret) => ret,
+    };
+
+    let regex = parser.parse();
+    if !regex.is_match(&input) {
+        println!("Didn't match");
+        exit(1);
+    }
+    
+    println!("Match");
+
+    Ok(())
 }
