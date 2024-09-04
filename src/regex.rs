@@ -15,11 +15,46 @@ impl Regex {
         Self { nfa }
     }
 
+    /// Returns the first matching substring.
+    ///
+    /// * `string`: 
+    pub fn first_match<'a>(&self, string: &'a str) -> Option<&'a str> {
+        if let Some(ret) = self.match_step_substr(string) {
+            return Some(ret);
+        }
+        if string.is_empty() {
+            return None;
+        }
+        self.first_match(&string[1..])
+    }
+
+    #[allow(dead_code)]
     /// Try to match a string with this `Regex`.
     ///
     /// * `string`:
     /// * Return: `true` if part or all of the string matches the regular expression, `false` otherwise.
     pub fn is_match(&self, string: &str) -> bool {
+        self.first_match(string).is_some()
+    }
+
+    /// Returns the matching part of the string if there is any. And None otherwise.
+    ///
+    /// * `string`: 
+    fn match_step_substr<'a>(&self, string: &'a str) -> Option<&'a str> {
+        if let Some(idx) = self.match_step_index(string) {
+            return Some(&string[..=idx]);
+        }
+
+        // if this part of the string doesn't match and the string is not empty yet, try this on
+        // the same string, minus the first letter.
+        None
+    }
+
+    /// Returns the index, of which the substring from 0 to the returned index matches the regex.
+    /// If it doesn't match, returns None.
+    ///
+    /// * `string`: 
+    fn match_step_index(&self, string: &str) -> Option<usize> {
         // TL;DR: a kind-of DFS algorithm. I would say it's a bit more complicated because the
         // program also needs to keep track of the parts of the string it's trying to match.
 
@@ -27,54 +62,53 @@ impl Regex {
         // if "^" is included, or match_end if "$" is included, or match_part which returns the
         // string slice which matches the regex.
 
-        let mut ref_stack: Vec<(usize, &str)> = vec![(0, string)];
+        struct RefStackElem {
+            ref_ptr: usize,
+            str_ptr: usize,
+        }
 
-        while let Some(token_ref) = ref_stack.pop() {
-            if token_ref.0 == self.nfa.end {
-                return true;
+        let mut ref_stack: Vec<RefStackElem> = vec![RefStackElem {
+            ref_ptr: 0,
+            str_ptr: 0,
+        }];
+
+        while let Some(ref_elem) = ref_stack.pop() {
+            if ref_elem.ref_ptr == self.nfa.end {
+                // why is it minus 1? I have no idea.
+                return Some(ref_elem.str_ptr - 1);
             }
             // i should let the panic be inside the get_state function, if I want it to panic.
-            let top_token = self.nfa.get_top_state(token_ref.0).unwrap();
+            let top_token = self.nfa.get_state(ref_elem.ref_ptr).unwrap();
 
             // this is a kind of lazy way to handle the stack. I may need to think of a better way
             // some time.
 
             // ordered in such a way that, when there are no concrete character matches found
-            // anymore, reserve to the dot matches, then the empty transitions list.
+            // anymore, reserve to the empty transitions list.
             {
-                let mut empty_nexts: Vec<(usize, &str)> = top_token
-                    .get_next_indices(TokenType::Empty)
+                let mut empty_nexts: Vec<RefStackElem> = top_token
+                    .get_next_indices(|token| token.0 == TokenType::Empty)
                     .iter()
-                    .map(|&idx| (idx, token_ref.1))
+                    .map(|&idx| RefStackElem {
+                        ref_ptr: idx,
+                        str_ptr: ref_elem.str_ptr,
+                    })
                     .collect();
                 ref_stack.append(&mut empty_nexts);
             }
 
-            if let Some(match_token) = token_ref.1.chars().nth(0).map(TokenType::Character) {
-                let mut dot_nexts: Vec<(usize, &str)> = top_token
-                    .get_next_indices(TokenType::Dot)
+            if let Some(match_token) = string.chars().nth(ref_elem.str_ptr).map(TokenType::Character) {
+                let mut append_vec: Vec<RefStackElem> = top_token
+                    .get_next_indices(|token| token.0 == TokenType::Dot || token.0 == match_token)
                     .iter()
-                    .map(|&idx| (idx, &token_ref.1[1..]))
-                    .collect();
-
-                ref_stack.append(&mut dot_nexts);
-
-                let mut append_vec: Vec<(usize, &str)> = top_token
-                    .get_next_indices(match_token)
-                    .iter()
-                    .map(|&idx| (idx, &token_ref.1[1..]))
+                    .map(|&idx| RefStackElem{ref_ptr: idx, str_ptr: ref_elem.str_ptr + 1})
                     .collect();
 
                 ref_stack.append(&mut append_vec);
             }
         }
 
-        // if this part of the string doesn't match and the string is not empty yet, try this on
-        // the same string, minus the first letter.
-        if string.is_empty() {
-            return false;
-        }
-        self.is_match(&string[1..])
+        None
     }
 }
 

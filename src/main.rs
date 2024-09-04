@@ -25,8 +25,11 @@ fn main() -> io::Result<()> {
 
     let stdin = io::stdin();
     while let Some(Ok(input)) = stdin.lock().lines().next() {
-        if regex.is_match(&input) {
-            println!("{input}");
+        // if regex.is_match(&input) {
+        //     println!("{input}");
+        // }
+        if let Some(match_substr) = regex.first_match(&input) {
+            println!("{match_substr}");
         }
     }
 
