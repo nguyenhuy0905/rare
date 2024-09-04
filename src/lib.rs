@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 #![warn(clippy::all)]
 pub mod parser;
 pub mod regex;

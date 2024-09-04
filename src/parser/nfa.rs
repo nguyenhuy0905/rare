@@ -41,19 +41,11 @@ impl Nfa {
         self.end = self.states.len() - 1;
     }
 
-    pub fn pop(&mut self) -> Option<State> {
-        self.end -= 1;
-        self.states.pop()
-    }
-
-    pub(crate) fn get_mut_state(&mut self, index: usize) -> Option<&mut State> {
-        self.states.get_mut(index)
-    }
-
     pub(crate) fn get_state(&self, index: usize) -> Option<&State> {
         self.states.get(index)
     }
 
+    #[allow(dead_code)]
     pub fn print_states(&self) {
         for (idx, state) in self.states.iter().enumerate() {
             if std::ptr::eq(state, self.states.last().unwrap()) {

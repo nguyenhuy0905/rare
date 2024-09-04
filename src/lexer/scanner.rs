@@ -76,19 +76,12 @@ impl<'a> Scanner<'a> {
         self.token_list.reverse();
     }
 
-    pub fn get_vec(&self) -> &Vec<TokenType> {
-        &self.token_list
-    }
-    
     /// Takes the token list from this scanner and incinerate the scanner.
     pub fn move_vec(self) -> Vec<TokenType> {
         self.token_list
     }
 
-    pub(in crate) fn get_mut_vec(&mut self) -> &mut Vec<TokenType> {
-        &mut self.token_list
-    }
-
+    #[allow(dead_code)]
     /// Prints the entire token list of this scanner
     pub fn print_tokens(&self) {
         for tok in self.token_list.iter() {

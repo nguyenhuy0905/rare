@@ -1,15 +1,14 @@
 use crate::lexer::{scanner::Scanner, token_type::TokenType};
 use std::vec::Vec;
 
-pub struct PostfixConverter<'a> {
+pub struct PostfixConverter {
     infix_token_stack: Vec<TokenType>,
     postfix_token_list: Vec<TokenType>,
     symbol_stack: Vec<TokenType>,
-    last_sym: &'a TokenType,
     done: bool,
 }
 
-impl<'a> PostfixConverter<'a> {
+impl PostfixConverter {
     /// Constructs a postfix converter from the scanner provided.
     ///
     /// * `scanner`:
@@ -19,7 +18,6 @@ impl<'a> PostfixConverter<'a> {
             infix_token_stack: scanner.move_vec(),
             postfix_token_list: Vec::new(),
             symbol_stack: Vec::new(),
-            last_sym: &TokenType::Empty,
             done: false,
         };
 
@@ -30,7 +28,7 @@ impl<'a> PostfixConverter<'a> {
     /// Converts the stored infix token list into a postfix one.
     ///
     /// After this function, call get_postfix_vec to retrieve the postfix vector.
-    pub fn convert(mut self) -> Result<PostfixConverter<'a>, String> {
+    pub fn convert(mut self) -> Result<PostfixConverter, String> {
         while let Some(token) = self.infix_token_stack.pop() {
             if !token.is_symbol() {
                 self.postfix_token_list.push(token);

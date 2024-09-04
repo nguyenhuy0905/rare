@@ -24,8 +24,10 @@ pub enum TokenType {
 }
 
 impl TokenType {
+    #[allow(dead_code)]
     /// Returns the discriminant value
     fn discriminant(&self) -> u8 {
+        // this is copied from Rust docs.
         unsafe { *<*const _>::from(self).cast::<u8>() }
     }
 
@@ -34,7 +36,7 @@ impl TokenType {
     ///
     /// The number returned here is supposedly used for precedence comparison, which is useful for
     /// postfix conversion.
-    pub fn precedence(&self) -> u8 {
+    pub(crate) fn precedence(&self) -> u8 {
         match self {
             TokenType::LParen | TokenType::RParen => 0,
             TokenType::Beam => 1,
@@ -45,7 +47,7 @@ impl TokenType {
         }
     }
 
-    pub fn is_symbol(&self) -> bool {
+    pub(crate) fn is_symbol(&self) -> bool {
         self.precedence() <= TokenType::precedence(&TokenType::Star)
     }
 

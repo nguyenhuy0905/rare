@@ -47,9 +47,11 @@ impl Parser {
 
         // if something throws here, I must handle these cases.
         let last_state = self.nfa_stack.pop().unwrap();
-        let mut ret = self.nfa_stack.pop().unwrap();
-        ret.merge(last_state);
-        Regex::from_nfa(ret)
+        if let Some(mut ret) = self.nfa_stack.pop() {
+            ret.merge(last_state);
+            return Regex::from_nfa(ret);
+        }
+        Regex::from_nfa(last_state)
     }
 
     fn handle_symbol(&mut self, input: TokenType) -> Result<(), String> {
