@@ -36,6 +36,9 @@ impl Regex {
             // i should let the panic be inside the get_state function, if I want it to panic.
             let top_token = self.nfa.get_top_state(token_ref.0).unwrap();
 
+            // this is a kind of lazy way to handle the stack. I may need to think of a better way
+            // some time.
+
             // ordered in such a way that, when there are no concrete character matches found
             // anymore, reserve to the empty transitions list.
             {
@@ -45,6 +48,16 @@ impl Regex {
                     .map(|&idx| (idx, token_ref.1))
                     .collect();
                 ref_stack.append(&mut empty_nexts);
+            }
+
+            {
+                let mut dot_nexts: Vec<(usize, &str)> = top_token
+                    .get_next_indices(TokenType::Dot)
+                    .iter()
+                    .map(|&idx| (idx, &token_ref.1[1..]))
+                    .collect();
+
+                ref_stack.append(&mut dot_nexts);
             }
 
             if let Some(match_token) = token_ref.1.chars().nth(0).map(TokenType::Character) {
