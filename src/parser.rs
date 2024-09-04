@@ -85,6 +85,7 @@ impl Parser {
             TokenType::Concat => self.handle_concat(),
             TokenType::Beam => self.handle_beam(),
             TokenType::Star => self.handle_star(),
+            TokenType::Plus => self.handle_plus(),
             _ => todo!(),
         }
     }
@@ -188,6 +189,36 @@ impl Parser {
         new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
         new_nfa.merge(Nfa::new(TokenType::Empty));
         new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
+
+        self.nfa_stack.push(new_nfa);
+        Ok(())
+    }
+
+    fn handle_plus(&mut self) -> Result<(), String> {
+        // TL;DR
+        //   
+        // (empty)──>──(star_nfa)──>──(empty)
+        //   └─────<──────┘
+        // so, very similar to handle_star
+        
+
+        let star_nfa = match self.nfa_stack.pop() {
+            Some(r) => {
+                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
+                    return Err(String::from("Error, no character to match star (*) with"));
+                }
+                r
+            }
+            None => return Err(String::from("Error, no character to match star (*) with")),
+        };
+        let mut new_nfa = Nfa::new(TokenType::Empty);
+
+        new_nfa.merge(star_nfa);
+
+        new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
+        new_nfa.merge(Nfa::new(TokenType::Empty));
+        // difference to star: this line
+        // new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
         self.nfa_stack.push(new_nfa);
         Ok(())
