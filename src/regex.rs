@@ -50,7 +50,7 @@ impl Regex {
                 ref_stack.append(&mut empty_nexts);
             }
 
-            {
+            if let Some(match_token) = token_ref.1.chars().nth(0).map(TokenType::Character) {
                 let mut dot_nexts: Vec<(usize, &str)> = top_token
                     .get_next_indices(TokenType::Dot)
                     .iter()
@@ -58,9 +58,7 @@ impl Regex {
                     .collect();
 
                 ref_stack.append(&mut dot_nexts);
-            }
 
-            if let Some(match_token) = token_ref.1.chars().nth(0).map(TokenType::Character) {
                 let mut append_vec: Vec<(usize, &str)> = top_token
                     .get_next_indices(match_token)
                     .iter()
