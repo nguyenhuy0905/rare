@@ -40,7 +40,7 @@ impl Regex {
             // some time.
 
             // ordered in such a way that, when there are no concrete character matches found
-            // anymore, reserve to the empty transitions list.
+            // anymore, reserve to the dot matches, then the empty transitions list.
             {
                 let mut empty_nexts: Vec<(usize, &str)> = top_token
                     .get_next_indices(TokenType::Empty)
