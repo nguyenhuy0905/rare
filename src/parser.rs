@@ -86,7 +86,11 @@ impl Parser {
             TokenType::Beam => self.handle_beam(),
             TokenType::Star => self.handle_star(),
             TokenType::Plus => self.handle_plus(),
-            _ => todo!(),
+            TokenType::QuestionMark => self.handle_question_mark(),
+            _ => {
+                Err(String::from(
+                    "Program bug in symbol handling. Contact the author about this error.",
+                )) }
         }
     }
 
@@ -168,7 +172,7 @@ impl Parser {
     /// Requires at least 1 NFA in the stack.
     fn handle_star(&mut self) -> Result<(), String> {
         // TL;DR
-        //   
+        //
         //   ┌────────────>─────────────┐
         // (empty)──>──(star_nfa)──>──(empty)
         //   └─────<──────┘
@@ -194,13 +198,15 @@ impl Parser {
         Ok(())
     }
 
+    /// Handles the plus symbol.
+    ///
+    /// Requires at least 1 NFA in the stack.
     fn handle_plus(&mut self) -> Result<(), String> {
         // TL;DR
-        //   
+        //
         // (empty)──>──(star_nfa)──>──(empty)
         //   └─────<──────┘
         // so, very similar to handle_star
-        
 
         let star_nfa = match self.nfa_stack.pop() {
             Some(r) => {
@@ -219,6 +225,37 @@ impl Parser {
         new_nfa.merge(Nfa::new(TokenType::Empty));
         // difference to star: this line
         // new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
+
+        self.nfa_stack.push(new_nfa);
+        Ok(())
+    }
+
+    /// Handles the question mark symbol.
+    ///
+    /// Requires at least 1 NFA in the stack.
+    fn handle_question_mark(&mut self) -> Result<(), String> {
+        // TL;DR
+        //
+        //   ┌────────────>─────────────┐
+        // (empty)──>──(star_nfa)──>──(empty)
+        // So, very similar to handle_star also.
+        let star_nfa = match self.nfa_stack.pop() {
+            Some(r) => {
+                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
+                    return Err(String::from("Error, no character to match plus (+) with"));
+                }
+                r
+            }
+            None => return Err(String::from("Error, no character to match star (*) with")),
+        };
+        let mut new_nfa = Nfa::new(TokenType::Empty);
+
+        new_nfa.merge(star_nfa);
+
+        // difference to star: this line
+        // new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
+        new_nfa.merge(Nfa::new(TokenType::Empty));
+        new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
         self.nfa_stack.push(new_nfa);
         Ok(())
