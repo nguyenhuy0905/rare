@@ -25,6 +25,8 @@ isn't empty, it tries to match the same string, minus the first letter.
 - Grouping expressions with ().
 - Kleene's star \*.
 - Or boolean |.
+- Plus (+).
+- Question mark (?).
 
 ## How to use
 
@@ -51,8 +53,6 @@ assert!(regex.is_match(".cpp"));
 
 - Add the remaining notations:
   - Dot (.).
-  - Plus (+). Aka, one or more.
-  - Question mark (?), aka, zero or one.
 
 - More graceful error handling:
   - There's a lot of panicking. Need to chop down probably half of those.
