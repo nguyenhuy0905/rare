@@ -19,10 +19,14 @@ into a nondeterministic finite automaton (NFA).
 - Finally, given a string, the regex program traverses the resultant NFA.
 If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
+- If you use the CLI, this program simply checks which line has a match to the
+regular expression, then prints the entire line. That's it. Not even the highlight
+you get when you `grep`.
 
 ## What does it support currently?
 
 - Grouping expressions with ().
+- Dot (.).
 - Kleene's star \*.
 - Or boolean |.
 - Plus (+).
@@ -51,14 +55,10 @@ assert!(regex.is_match(".cpp"));
 
 ## TODO
 
-- Add the remaining notations:
-  - Dot (.).
+- Add the remaining notations: yay i got it done.
 
 - More graceful error handling:
   - There's a lot of panicking. Need to chop down probably half of those.
-
-- Documentation:
-  - Have been lazing out on writing documentation for a while.
 
 - Develop some more notations:
   - Hat (^). This one is simpler: just don't creep up a character when the
@@ -72,4 +72,4 @@ assert!(regex.is_match(".cpp"));
     everything working.
 
 - UTF-8?
-  - I doubt I even have to do anything :). Hopefully.
+  - Not until I have everything above finished.
