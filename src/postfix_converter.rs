@@ -1,7 +1,15 @@
 use crate::lexer::{scanner::Scanner, token_type::TokenType};
 use std::vec::Vec;
 
-pub struct PostfixConverter {
+/// Converts an infix token stack into a postfix one. This struct assumes the infix token array is
+/// provided by struct `Scanner`.
+///
+/// * `infix_token_stack`: basically the infix token list from `Scanner` but reversed.
+/// * `postfix_token_list`: the resultant token list. Remains invalid until
+///                         `PostfixConverter::convert` is called.
+/// * `symbol_stack`: the symbol stack, used for temporarily holding symbols.
+/// * `done`: whether the conversion is finished.
+pub(crate) struct PostfixConverter {
     infix_token_stack: Vec<TokenType>,
     postfix_token_list: Vec<TokenType>,
     symbol_stack: Vec<TokenType>,
@@ -48,19 +56,36 @@ impl PostfixConverter {
     /// Returns the postfix vector stored inside this converter.
     /// After this call, the postfix converter is burnt to a crisp.
     ///
-    /// Should only be called after convert. Otherwise, the return value isn't useful.
-    pub(crate) fn move_postfix_vec(self) -> Vec<TokenType> {
+    /// Should only be called after `convert`. Otherwise, the return value isn't useful.
+    /// * Return: the converted postfix token list.
+    pub fn move_postfix_vec(self) -> Vec<TokenType> {
         self.postfix_token_list
     }
 
+    /// Prints the current postfix stack. Only useful when debugging.
     pub fn print_postfix_stack(&self) {
         for token in self.postfix_token_list.iter() {
             println!("{}", token);
         }
     }
 
+    /// Handles the token passed in. This symbol is assumed to be the symbol just `pop`ped from
+    /// this converter's infix stack.
+    /// Read the documentation on `TokenType::precedence` and `TokenType::is_symbol` for the
+    /// general mechanism.
+    ///
+    /// * `token`: the token passed in.
     fn push_symbol(&mut self, token: TokenType) -> Result<(), String> {
         // TODO: generalize parts of this operation, using some sort of precedence mechanism
+        
+        // TL;DR:
+        //
+        // LParen has lowest precedence, hence is pushed right away onto the symbol stack.
+        // RParen will not push itself onto the symbol stack, but rather, it's a signal that every
+        // symbol popped up until the first left parentheses should be pushed onto the postfix token
+        // list. Then, that left parentheses is also removed from the stack.
+        // All the other tokens work as described in `TokenType::precedence`. Following this logic,
+        // characters and quantifiers get pushed straight to the postfix token list.
         match token {
             TokenType::LParen => {
                 self.symbol_stack.push(token);
@@ -79,7 +104,7 @@ impl PostfixConverter {
                 Some(TokenType::Concat) => {
                     self.postfix_token_list.push(TokenType::Concat);
                 }
-                None | Some(_) => self.symbol_stack.push(token.clone()),
+                None | Some(_) => self.symbol_stack.push(token),
             },
             TokenType::Beam => match self.symbol_stack.last() {
                 None | Some(TokenType::LParen) => {

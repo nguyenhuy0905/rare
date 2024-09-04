@@ -1,9 +1,14 @@
 use super::token_type::TokenType;
-/// Encapsulates scanner elements. The struct should be mutable, otherwise it's useless.
+/// A scanner converts a raw string into an infix list of tokens. At the moment, the scanner, and
+/// hence all other components of this regular expression engine, only works on ASCII characters.
 ///
-/// The scanner doesn't own the string. Hence, the input string's lifetime must be at least
-/// the lifetime of the scanner.
-pub struct Scanner<'a> {
+/// * `token_list`: the resultant infix token list. Only valid after `Scanner::scan` is called.
+/// * `input`: a reference to the input string. Since this is only a reference, the lifetime of the
+///            input string must be at least that of the Scanner.
+/// * `curr_scan_fn`: the function called by the scanner for each character it reads. 
+/// * `concat_next`: whether a concatenation notation may be inserted when scanning the next
+///                  character.
+pub(crate) struct Scanner<'a> {
     token_list: Vec<TokenType>,
     input: &'a str,
     curr_scan_fn: fn(&mut Scanner<'a>, char) -> TokenType,
@@ -26,7 +31,7 @@ impl<'a> Scanner<'a> {
 
     /// Scans the input string that the scanner holds.
     ///
-    /// After this function is called, the scanner should be made immutable.
+    /// The scanner is expected to be consumed by the postfix converter after this step.
     pub fn scan(&mut self) {
         for input_char in self.input.chars() {
             let ret_token = (self.curr_scan_fn)(self, input_char);
@@ -49,7 +54,13 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(in crate::lexer) fn scan_char(&mut self, input_char: char) -> TokenType {
+    /// Scans the input character.
+    /// If the input character is escape ('\\'), the next time the scanner calls its scan function,
+    /// it calls `scan_escape`.
+    ///
+    /// * `input_char`: the input character.
+    /// * Return: the token type detected.
+    fn scan_char(&mut self, input_char: char) -> TokenType {
         match input_char {
             '.' => TokenType::Dot,
             '*' => TokenType::Star,
@@ -66,12 +77,17 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub(in crate::lexer) fn scan_escape(&mut self, input_char: char) -> TokenType {
+    /// The scan function called if the last character scanned is an escape.
+    /// After this function is called, the scanner's next scan function is `scan_char`.
+    ///
+    /// * `input_char`: 
+    pub fn scan_escape(&mut self, input_char: char) -> TokenType {
         self.curr_scan_fn = Scanner::scan_char;
         TokenType::Character(input_char)
     }
 
-    /// Reverses the token list, useful for converting into a postfix representation.
+    /// Reverses the token list, or in other words, convert the token list held by this scanner
+    /// into a stack.
     pub(in crate) fn reverse_token_list(&mut self) {
         self.token_list.reverse();
     }
@@ -82,7 +98,7 @@ impl<'a> Scanner<'a> {
     }
 
     #[allow(dead_code)]
-    /// Prints the entire token list of this scanner
+    /// Prints the entire token list of this scanner. Only useful for debugging.
     pub fn print_tokens(&self) {
         for tok in self.token_list.iter() {
             println!("{}", tok);

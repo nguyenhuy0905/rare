@@ -1,7 +1,7 @@
 use crate::regex::Regex;
 
 pub(crate) mod nfa;
-mod state;
+pub(crate) mod state;
 
 use nfa::Nfa;
 use state::State;
@@ -11,11 +11,27 @@ use crate::{
     postfix_converter::PostfixConverter,
 };
 
+/// Parses a postfix stack into a NFA representing the regular expression.
+/// The parser elements should not be accessed by the user manually. Instead, retrieve the regular
+/// expression using `Parser::parse`.
+///
+/// * `postfix_stack`: the postfix stack passed in. It is assumed that this stack is provided by
+///                    the postfix converter.
+/// * `nfa_stack`: a temporary NFA stack. After `Parser::parse`, the stack should only have at most
+///                2 NFAs left inside.
 pub struct Parser {
     postfix_stack: Vec<TokenType>,
     nfa_stack: Vec<Nfa>,
 }
 impl Parser {
+    /// Constructs a parser from the regex string passed in.
+    /// After creating a parser, `Parser::parse` should be called.
+    /// The `new` function does more than just saving the string. It processes the string to get a
+    /// list of tokens, from which the parser can work on.
+    ///
+    /// * `regex`: regular expression string.
+    /// * Return: the newly constructed `Parser` if successful, otherwise, a string describing the
+    ///           error is returned.
     pub fn new(regex: &str) -> Result<Self, String> {
         let mut pfix_stack = {
             let mut scanner = Scanner::new(regex);
@@ -36,6 +52,10 @@ impl Parser {
         })
     }
 
+    /// Parses the regular expression string held by this parser into a regular expression. After
+    /// that, `Regex::is_match` can be called.
+    ///
+    /// * Return: the parsed `Regex` object.
     pub fn parse(&mut self) -> Regex {
         while let Some(token) = self.postfix_stack.pop() {
             if token.is_symbol() {
@@ -45,8 +65,9 @@ impl Parser {
             }
         }
 
-        // if something throws here, I must handle these cases.
+        // note: there should always be at least 1 NFA by the time parsing finishes.
         let last_state = self.nfa_stack.pop().unwrap();
+        // a case where there isn't another NFA down there: empty regular expression "".
         if let Some(mut ret) = self.nfa_stack.pop() {
             ret.merge(last_state);
             return Regex::from_nfa(ret);
@@ -54,6 +75,9 @@ impl Parser {
         Regex::from_nfa(last_state)
     }
 
+    /// Handles the symbol passed in. This assumes that the input passed in is a symbol.
+    ///
+    /// * `input`: the symbol passed in.
     fn handle_symbol(&mut self, input: TokenType) -> Result<(), String> {
         debug_assert!(input.is_symbol());
 
@@ -65,7 +89,11 @@ impl Parser {
         }
     }
 
+    /// Processes the concat symbol.
+    ///
+    /// Concatenation can only succeed when there are at least 2 NFAs in the stack.
     fn handle_concat(&mut self) -> Result<(), String> {
+        // Do I really need to tell you what this results in?
         let second_nfa = match self.nfa_stack.pop() {
             None => return Err(String::from("Error, no value to concatenate")),
             Some(ret) => ret,
@@ -81,7 +109,18 @@ impl Parser {
         Ok(())
     }
 
+    /// Processes the beam symbol
+    ///
+    /// The beam symbol needs at least 1 NFA in the NFA stack.
+    /// note: the parser doesn't check whether the 2 NFAs are exactly equivalent, because the
+    /// resultant Regex is still valid without that check.
     fn handle_beam(&mut self) -> Result<(), String> {
+        // TL;DR
+        //
+        //
+        // (empty)────>(first_nfa)─────>(empty)
+        //    └───>───(second_nfa)───>───┘
+
         let second_nfa = match self.nfa_stack.pop() {
             None => return Err(String::from("Error, no value to do an OR")),
             Some(ret) => ret,
@@ -91,16 +130,21 @@ impl Parser {
             Some(ret) => ret,
         };
 
+        // first NFA's end plus 1. After merging with push_nfa, this is where that end is.
         let first_end = first_nfa.states.len();
         let mut push_nfa = Nfa::new(TokenType::Empty);
 
         push_nfa.merge(first_nfa);
+        // maybe I should encapsulate this in a simple function. This is a bit of "magic", if you
+        // don't know how `merge` works.
         push_nfa.end = 0;
         push_nfa.merge(second_nfa);
 
         {
             // last index plus 1
             let new_last_len = push_nfa.states.len();
+            // point both ends of the newly merged NFAs to an empty node that is the end of the OR
+            // boolean.
             push_nfa
                 .states
                 .get_mut(first_end)
@@ -118,8 +162,25 @@ impl Parser {
         Ok(())
     }
 
+    /// Handles the Kleene star symbol.
+    ///
+    /// Requires at least 1 NFA in the stack.
     fn handle_star(&mut self) -> Result<(), String> {
-        let star_nfa = self.nfa_stack.pop().unwrap();
+        // TL;DR
+        //   
+        //   ┌────────────>─────────────┐
+        // (empty)──>──(star_nfa)──>──(empty)
+        //   └─────<──────┘
+
+        let star_nfa = match self.nfa_stack.pop() {
+            Some(r) => {
+                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
+                    return Err(String::from("Error, no character to match star (*) with"));
+                }
+                r
+            }
+            None => return Err(String::from("Error, no character to match star (*) with")),
+        };
         let mut new_nfa = Nfa::new(TokenType::Empty);
 
         new_nfa.merge(star_nfa);
