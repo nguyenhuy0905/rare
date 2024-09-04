@@ -19,8 +19,7 @@ impl State {
     pub fn new(token: TokenType) -> Self {
         Self {
             token,
-            edges: Vec::new(),
-        }
+            edges: Vec::new(), }
     }
 
     /// Adds an edge to this state.
@@ -37,10 +36,10 @@ impl State {
     /// conditions than just matching one type of input.
     ///
     /// * `input`: 
-    pub fn get_next_indices(&self, input: TokenType) -> Vec<usize> {
+    pub fn get_next_indices<P: Fn(&&(TokenType, usize)) -> bool>(&self, pred: P) -> Vec<usize> {
         self.edges
             .iter()
-            .filter(|edge| edge.0 == input)
+            .filter(pred)
             .map(|edge| edge.1)
             .collect()
     }

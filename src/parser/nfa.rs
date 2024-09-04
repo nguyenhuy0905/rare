@@ -63,7 +63,7 @@ impl Nfa {
     /// But the author may be too lazy to use this function :(.
     ///
     /// * `index`: 
-    pub fn get_top_state(&self, index: usize) -> Option<&State> {
+    pub fn get_state(&self, index: usize) -> Option<&State> {
         self.states.get(index)
     }
 
