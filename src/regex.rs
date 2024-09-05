@@ -136,10 +136,15 @@ impl Regex {
             str_ptr: usize,
         }
 
-        let mut ref_stack: Vec<RefStackElem> = vec![RefStackElem {
+        // since I only execute the next step, this is pretty much as much as almost all
+        // situations may need.
+        // Also, this function isn't run recursively, so at most 36 wasted bytes is nothing.
+        
+        let mut ref_stack: Vec<RefStackElem> = Vec::with_capacity(3);
+        ref_stack.push(RefStackElem {
             ref_ptr: 0,
             str_ptr: pos,
-        }];
+        });
 
         let mut max_match: Option<usize> = None;
 
