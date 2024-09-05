@@ -86,7 +86,7 @@ fn main() -> io::Result<()> {
 
 And here is an example using the CLI:
 
-![CLI example](https://github.com/user-attachments/assets/200f1135-8c94-4964-8846-65d7e4bd9862)
+![CLI example](https://github.com/user-attachments/assets/a6ff171a-1d0f-48f2-b20a-41ba716ac351)
 
 ## TODO
 
