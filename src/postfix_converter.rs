@@ -1,4 +1,7 @@
-use crate::lexer::{scanner::Scanner, token_type::{Token, TokenType}};
+use crate::lexer::{
+    scanner::Scanner,
+    token_type::{Token, TokenType},
+};
 use std::vec::Vec;
 
 /// Converts an infix token stack into a postfix one. This struct assumes the infix token array is
@@ -81,7 +84,7 @@ impl PostfixConverter {
     /// * `token`: the token passed in.
     fn push_symbol(&mut self, tok: Token) -> Result<(), String> {
         // TODO: generalize parts of this operation, using some sort of precedence mechanism
-        
+
         // TL;DR:
         //
         // LParen has lowest precedence, hence is pushed right away onto the symbol stack.
@@ -104,14 +107,22 @@ impl PostfixConverter {
                 return Err(format!("Character ) at {0}: missing a (", tok.pos + 1));
             }
             TokenType::Concat => match self.symbol_stack.last() {
-                Some(Token{token_type: TokenType::Concat, ..}) => {
+                Some(Token {
+                    token_type: TokenType::Concat,
+                    ..
+                }) => {
                     // position doesn't really matter for this token.
-                    self.postfix_token_list.push(Token::new(tok.pos, TokenType::Concat));
+                    self.postfix_token_list
+                        .push(Token::new(tok.pos, TokenType::Concat));
                 }
                 None | Some(_) => self.symbol_stack.push(tok),
             },
             TokenType::Beam => match self.symbol_stack.last() {
-                None | Some(Token{token_type: TokenType::LParen, ..}) => {
+                None
+                | Some(Token {
+                    token_type: TokenType::LParen,
+                    ..
+                }) => {
                     self.symbol_stack.push(tok);
                 }
                 Some(_) => {
@@ -123,6 +134,21 @@ impl PostfixConverter {
                     self.symbol_stack.push(tok);
                 }
             },
+            TokenType::Star | TokenType::Plus | TokenType::QuestionMark => {
+                if let Some(last_sym) = self.symbol_stack.last() {
+                    if !(last_sym.token_type == TokenType::LParen
+                        || last_sym.token_type == TokenType::Beam)
+                    {
+                        return Ok(());
+                    }
+                    
+                    return Err(format!("Character {0} at {1}: {0} at the beginning", tok.token_type, tok.pos));
+                }
+                else if self.postfix_token_list.last().is_none() {
+                    return Err(format!("Character {0} at {1}: {0} at the beginning", tok.token_type, tok.pos));
+                }
+                self.postfix_token_list.push(tok);
+            }
             _ => {
                 self.postfix_token_list.push(tok);
             }
