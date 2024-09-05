@@ -42,7 +42,7 @@ impl<'a> Scanner<'a> {
                     // that of the last character.
                     need_concat = self.concat_next;
                 }
-                // TokenType::Dollar will be evaluated by the postfix converter.
+                // TokenType::Dollar will be error-checked by the postfix converter.
                 TokenType::Character(_)
                 | TokenType::Dot
                 | TokenType::LParen
