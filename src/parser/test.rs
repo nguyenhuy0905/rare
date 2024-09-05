@@ -11,7 +11,10 @@ fn simple_parse_test() {
         Ok(ret) => ret,
     };
 
-    let regex_handle = parser.parse();
+    let regex_handle = match parser.parse() {
+        Ok(r) => r,
+        Err(msg) => panic!("{msg}"),
+    };
     println!("Regex string: {rstr}");
     regex_handle.nfa.print_states();
 }

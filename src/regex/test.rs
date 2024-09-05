@@ -11,7 +11,10 @@ fn test_regex_matcher_simple() {
         Err(msg) => panic!("{msg}"),
     };
 
-    let ret_ex = parser.parse();
+    let ret_ex = match parser.parse() {
+        Ok(r) => r,
+        Err(msg) => panic!("{msg}"),
+    };
     ret_ex.nfa.print_states();
     assert!(!ret_ex.is_match("abbbbbb"));
     assert!(!ret_ex.is_match("bccccccccc"));
@@ -29,7 +32,10 @@ fn test_regex_matcher_less_simple() {
         Ok(p) => p,
         Err(msg) => panic!("{msg}"),
     };
-    let regex = parser.parse();
+    let regex = match parser.parse() {
+        Ok(r) => r,
+        Err(msg) => panic!("{msg}"),
+    };
     regex.nfa.print_states();
     assert!(regex.is_match("whatever before isn't important cccccc.cxx and whatever behind here also isn't really important"));
     assert!(!regex.is_match(".hcxx"));

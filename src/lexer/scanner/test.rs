@@ -6,7 +6,7 @@ fn simple_scan_test() {
     let mut test_scanner = Scanner::new("(abc)\\..*");
     test_scanner.scan();
     // I can test private methods?
-    let res_vec: &Vec<TokenType> = &test_scanner.token_list;
+    let res_vec: &Vec<Token> = &test_scanner.token_list;
     let outputs: [TokenType; 12] = [
         TokenType::LParen,
         TokenType::Character('a'),
@@ -25,7 +25,7 @@ fn simple_scan_test() {
     let mut idx = 0;
 
     while idx < res_vec.len() {
-        assert_eq!(res_vec[idx], outputs[idx]);
+        assert_eq!(res_vec[idx].token, outputs[idx]);
         idx += 1;
     }
 

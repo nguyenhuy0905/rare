@@ -1,10 +1,13 @@
-use std::{io::{self, BufRead}, process::exit};
+use std::{
+    io::{self, BufRead},
+    process::exit,
+};
 
 use parser::Parser;
 
 mod lexer;
-mod postfix_converter;
 mod parser;
+mod postfix_converter;
 mod regex;
 
 fn main() -> io::Result<()> {
@@ -31,11 +34,18 @@ fn main() -> io::Result<()> {
 
     let stdin = io::stdin();
     while let Some(Ok(input)) = stdin.lock().lines().next() {
-        // if regex.is_match(&input) {
-        //     println!("{input}");
-        // }
-        if let Some(match_substr) = regex.first_match(&input) {
-            println!("{match_substr}");
+        if let Some(match_substr) = regex.match_all_index(&input) {
+            let mut prev_last_idx = 0;
+            for substr_range in &match_substr {
+                print!(
+                    "{0}\x1b[31m\x1b[1m{1}\x1b[0m",
+                    &input[prev_last_idx..substr_range.0],
+                    &input[substr_range.0..=substr_range.1]
+                );
+                prev_last_idx = substr_range.1 + 1;
+            }
+            print!("{0}", &input[prev_last_idx..]);
+            println!();
         }
     }
 

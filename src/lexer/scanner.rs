@@ -33,9 +33,7 @@ impl<'a> Scanner<'a> {
     ///
     /// The scanner is expected to be consumed by the postfix converter after this step.
     pub fn scan(&mut self) {
-        let mut idx: usize = 0;
-
-        for input_char in self.input.chars() {
+        for (idx, input_char) in self.input.chars().enumerate() {
             let ret_token = (self.curr_scan_fn)(self, input_char);
             let mut need_concat = ret_token.need_concat_next();
             match ret_token {
@@ -53,7 +51,6 @@ impl<'a> Scanner<'a> {
                 _ => self.token_list.push(Token::new(idx, ret_token)),
             }
             self.concat_next = need_concat;
-            idx += 1;
         }
     }
 

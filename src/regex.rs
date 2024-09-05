@@ -1,3 +1,5 @@
+use std::collections::LinkedList;
+
 use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
 
@@ -17,7 +19,7 @@ impl Regex {
 
     /// Returns the first matching substring.
     ///
-    /// * `string`: 
+    /// * `string`:
     pub fn first_match<'a>(&self, string: &'a str) -> Option<&'a str> {
         if let Some(ret) = self.match_step_substr(string) {
             return Some(ret);
@@ -26,6 +28,54 @@ impl Regex {
             return None;
         }
         self.first_match(&string[1..])
+    }
+
+    pub fn match_all_index(&self, string: &str) -> Option<LinkedList<(usize, usize)>> {
+        let mut ret: LinkedList<(usize, usize)> = LinkedList::new();
+        let mut str_ptr: usize = 0;
+
+        while str_ptr < string.len() {
+            if let Some(substr_idx) = self.match_step_index(&string[str_ptr..]) {
+                ret.push_back((str_ptr, str_ptr + substr_idx));
+                str_ptr += if substr_idx > 0 {substr_idx} else {1};
+            }
+            else {
+                str_ptr += 1;
+            }
+        }
+
+        if ret.is_empty() {
+            None
+        } else {
+            Some(ret)
+        }
+    }
+
+    #[allow(dead_code)]
+    /// Try to match until the end of the string.
+    /// Since the return collection can grow really large, a LinkedList is used.
+    ///
+    /// * `string`: 
+    /// * Return: A linked list of all matched string.
+    pub fn match_all<'a>(&self, string: &'a str) -> Option<LinkedList<&'a str>> {
+        let mut ret: LinkedList<&'a str> = LinkedList::new();
+        let mut str_ptr: usize = 0;
+        
+        while str_ptr < string.len() {
+            if let Some(substr_idx) = self.match_step_index(&string[str_ptr..]) {
+                ret.push_back(&string[str_ptr..=(str_ptr + substr_idx)]);
+                str_ptr += if substr_idx > 0 {substr_idx} else {1};
+            }
+            else {
+                str_ptr += 1;
+            }
+        }
+
+        if ret.is_empty() {
+            None
+        } else {
+            Some(ret)
+        }
     }
 
     #[allow(dead_code)]
@@ -39,10 +89,10 @@ impl Regex {
 
     /// Returns the matching part of the string if there is any. And None otherwise.
     ///
-    /// * `string`: 
+    /// * `string`:
     fn match_step_substr<'a>(&self, string: &'a str) -> Option<&'a str> {
         if let Some(idx) = self.match_step_index(string) {
-            return Some(&string[..=idx]);
+            return Some(&string[0..=idx]);
         }
 
         // if this part of the string doesn't match and the string is not empty yet, try this on
@@ -53,7 +103,9 @@ impl Regex {
     /// Returns the index, of which the substring from 0 to the returned index matches the regex.
     /// If it doesn't match, returns None.
     ///
-    /// * `string`: 
+    /// Note: the first tuple element is currently bugged. Do not use it.
+    ///
+    /// * `string`:
     fn match_step_index(&self, string: &str) -> Option<usize> {
         // TL;DR: a kind-of DFS algorithm. I would say it's a bit more complicated because the
         // program also needs to keep track of the parts of the string it's trying to match.
@@ -97,11 +149,18 @@ impl Regex {
                 ref_stack.append(&mut empty_nexts);
             }
 
-            if let Some(match_token) = string.chars().nth(ref_elem.str_ptr).map(TokenType::Character) {
+            if let Some(match_token) = string
+                .chars()
+                .nth(ref_elem.str_ptr)
+                .map(TokenType::Character)
+            {
                 let mut append_vec: Vec<RefStackElem> = top_token
                     .get_next_indices(|token| token.0 == TokenType::Dot || token.0 == match_token)
                     .iter()
-                    .map(|&idx| RefStackElem{ref_ptr: idx, str_ptr: ref_elem.str_ptr + 1})
+                    .map(|&idx| RefStackElem {
+                        ref_ptr: idx,
+                        str_ptr: ref_elem.str_ptr + 1,
+                    })
                     .collect();
 
                 ref_stack.append(&mut append_vec);
