@@ -3,7 +3,7 @@ use std::fmt;
 /// The types of token. The integer representation makrs the precedence for symbols,
 /// which is needed when parsing. The characters (Character and Dot) don't need precedence,
 /// but they still have their integer number to help distinguishing.
-#[derive(PartialEq, Eq, PartialOrd, Clone, Hash, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Clone, Debug)]
 #[repr(u8)]
 pub enum TokenType {
     Empty = 0,
@@ -21,6 +21,17 @@ pub enum TokenType {
     /// The actual token is expected to be the next token.
     /// This token is not pushed to the token list when scanning the input string.
     Escape,
+}
+
+pub(crate) struct Token {
+    pub pos: usize,
+    pub token: TokenType,
+}
+
+impl Token {
+    pub fn new(pos: usize, token: TokenType) -> Self {
+        Self { pos, token }
+    }
 }
 
 impl TokenType {

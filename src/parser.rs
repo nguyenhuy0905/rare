@@ -1,4 +1,4 @@
-use crate::regex::Regex;
+use crate::{lexer::token_type::Token, regex::Regex};
 
 pub(crate) mod nfa;
 pub(crate) mod state;
@@ -20,7 +20,7 @@ use crate::{
 /// * `nfa_stack`: a temporary NFA stack. After `Parser::parse`, the stack should only have at most
 ///                2 NFAs left inside.
 pub struct Parser {
-    postfix_stack: Vec<TokenType>,
+    postfix_stack: Vec<Token>,
     nfa_stack: Vec<Nfa>,
 }
 impl Parser {
@@ -48,7 +48,7 @@ impl Parser {
 
         Ok(Self {
             postfix_stack: pfix_stack,
-            nfa_stack: vec![Nfa::new(TokenType::Empty)],
+            nfa_stack: vec![Nfa::new(Token::new(0, TokenType::Empty))],
         })
     }
 
@@ -56,12 +56,12 @@ impl Parser {
     /// that, `Regex::is_match` can be called.
     ///
     /// * Return: the parsed `Regex` object.
-    pub fn parse(&mut self) -> Regex {
-        while let Some(token) = self.postfix_stack.pop() {
-            if token.is_symbol() {
-                let _ = self.handle_symbol(token);
+    pub fn parse(&mut self) -> Result<Regex, String> {
+        while let Some(tok) = self.postfix_stack.pop() {
+            if tok.token.is_symbol() {
+                self.handle_symbol(tok)?
             } else {
-                self.nfa_stack.push(Nfa::new(token));
+                self.nfa_stack.push(Nfa::new(tok));
             }
         }
 
@@ -70,41 +70,41 @@ impl Parser {
         // a case where there isn't another NFA down there: empty regular expression "".
         if let Some(mut ret) = self.nfa_stack.pop() {
             ret.merge(last_state);
-            return Regex::from_nfa(ret);
+            return Ok(Regex::from_nfa(ret));
         }
-        Regex::from_nfa(last_state)
+        Ok(Regex::from_nfa(last_state))
     }
 
     /// Handles the symbol passed in. This assumes that the input passed in is a symbol.
     ///
     /// * `input`: the symbol passed in.
-    fn handle_symbol(&mut self, input: TokenType) -> Result<(), String> {
-        debug_assert!(input.is_symbol());
+    fn handle_symbol(&mut self, input: Token) -> Result<(), String> {
+        debug_assert!(input.token.is_symbol());
 
-        match input {
-            TokenType::Concat => self.handle_concat(),
-            TokenType::Beam => self.handle_beam(),
-            TokenType::Star => self.handle_star(),
-            TokenType::Plus => self.handle_plus(),
-            TokenType::QuestionMark => self.handle_question_mark(),
-            _ => {
-                Err(String::from(
-                    "Program bug in symbol handling. Contact the author about this error.",
-                )) }
+        match input.token {
+            TokenType::Concat => self.handle_concat(input.pos),
+            TokenType::Beam => self.handle_beam(input.pos),
+            TokenType::Star => self.handle_star(input.pos),
+            TokenType::Plus => self.handle_plus(input.pos),
+            TokenType::QuestionMark => self.handle_question_mark(input.pos),
+            _ => Err(String::from(
+                "Program bug in symbol handling. Contact the author about this error.",
+            )),
         }
     }
 
     /// Processes the concat symbol.
     ///
     /// Concatenation can only succeed when there are at least 2 NFAs in the stack.
-    fn handle_concat(&mut self) -> Result<(), String> {
+    fn handle_concat(&mut self, pos: usize) -> Result<(), String> {
         // Do I really need to tell you what this results in?
+        // Also, the error should never throw unless it's the program's fault.
         let second_nfa = match self.nfa_stack.pop() {
-            None => return Err(String::from("Error, no value to concatenate")),
+            None => return Err(format!("At {pos}: No value to concatenate")),
             Some(ret) => ret,
         };
         let mut first_nfa = match self.nfa_stack.pop() {
-            None => return Err(String::from("Error, insufficient value to concatenate")),
+            None => return Err(format!("At {pos}: Insufficient value to concatenate")),
             Some(ret) => ret,
         };
 
@@ -119,7 +119,7 @@ impl Parser {
     /// The beam symbol needs at least 1 NFA in the NFA stack.
     /// note: the parser doesn't check whether the 2 NFAs are exactly equivalent, because the
     /// resultant Regex is still valid without that check.
-    fn handle_beam(&mut self) -> Result<(), String> {
+    fn handle_beam(&mut self, pos: usize) -> Result<(), String> {
         // TL;DR
         //
         //
@@ -127,17 +127,18 @@ impl Parser {
         //    └───>───(second_nfa)───>───┘
 
         let second_nfa = match self.nfa_stack.pop() {
-            None => return Err(String::from("Error, no value to do an OR")),
+            None => return Err(format!("Operation | at {0}: No value to do an OR |", pos + 1)),
             Some(ret) => ret,
         };
         let first_nfa = match self.nfa_stack.pop() {
-            None => Nfa::new(TokenType::Empty),
+            // position doesn't matter for empty.
+            None => Nfa::new(Token::new(0, TokenType::Empty)),
             Some(ret) => ret,
         };
 
         // first NFA's end plus 1. After merging with push_nfa, this is where that end is.
         let first_end = first_nfa.states.len();
-        let mut push_nfa = Nfa::new(TokenType::Empty);
+        let mut push_nfa = Nfa::new(Token::new(0, TokenType::Empty));
 
         push_nfa.merge(first_nfa);
         // maybe I should encapsulate this in a simple function. This is a bit of "magic", if you
@@ -160,7 +161,7 @@ impl Parser {
                 .last_mut()
                 .unwrap()
                 .add_edge(TokenType::Empty, new_last_len);
-            push_nfa.add_state(State::new(TokenType::Empty));
+            push_nfa.add_state(State::new(Token::new(0, TokenType::Empty)));
         }
 
         self.nfa_stack.push(push_nfa);
@@ -170,7 +171,7 @@ impl Parser {
     /// Handles the Kleene star symbol.
     ///
     /// Requires at least 1 NFA in the stack.
-    fn handle_star(&mut self) -> Result<(), String> {
+    fn handle_star(&mut self, pos: usize) -> Result<(), String> {
         // TL;DR
         //
         //   ┌────────────>─────────────┐
@@ -179,19 +180,22 @@ impl Parser {
 
         let star_nfa = match self.nfa_stack.pop() {
             Some(r) => {
-                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
-                    return Err(String::from("Error, no character to match star (*) with"));
+                if r.states.len() == 1 {
+                    let last_state = r.states.last().unwrap();
+                    if last_state.token.token == TokenType::Empty {
+                        return Err(format!("Character *, position {0}: Missing preceding value", pos + 1))
+                    }
                 }
                 r
             }
-            None => return Err(String::from("Error, no character to match star (*) with")),
+            None => return Err(format!("Character *, position {0}: Missing preceding value", pos + 1)),
         };
-        let mut new_nfa = Nfa::new(TokenType::Empty);
+        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
 
         new_nfa.merge(star_nfa);
 
         new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
-        new_nfa.merge(Nfa::new(TokenType::Empty));
+        new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
         new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
         self.nfa_stack.push(new_nfa);
@@ -201,7 +205,7 @@ impl Parser {
     /// Handles the plus symbol.
     ///
     /// Requires at least 1 NFA in the stack.
-    fn handle_plus(&mut self) -> Result<(), String> {
+    fn handle_plus(&mut self, pos: usize) -> Result<(), String> {
         // TL;DR
         //
         // (empty)──>──(star_nfa)──>──(empty)
@@ -210,19 +214,22 @@ impl Parser {
 
         let star_nfa = match self.nfa_stack.pop() {
             Some(r) => {
-                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
-                    return Err(String::from("Error, no character to match star (*) with"));
+                if r.states.len() == 1 {
+                    let last_state = r.states.last().unwrap();
+                    if last_state.token.token == TokenType::Empty {
+                        return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
+                    }
                 }
                 r
             }
-            None => return Err(String::from("Error, no character to match star (*) with")),
+            None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
         };
-        let mut new_nfa = Nfa::new(TokenType::Empty);
+        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
 
         new_nfa.merge(star_nfa);
 
         new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
-        new_nfa.merge(Nfa::new(TokenType::Empty));
+        new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
         // difference to star: this line
         // new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
@@ -233,7 +240,7 @@ impl Parser {
     /// Handles the question mark symbol.
     ///
     /// Requires at least 1 NFA in the stack.
-    fn handle_question_mark(&mut self) -> Result<(), String> {
+    fn handle_question_mark(&mut self, pos: usize) -> Result<(), String> {
         // TL;DR
         //
         //   ┌────────────>─────────────┐
@@ -241,20 +248,23 @@ impl Parser {
         // So, very similar to handle_star also.
         let star_nfa = match self.nfa_stack.pop() {
             Some(r) => {
-                if r.states.len() == 1 && r.states.last().unwrap().token == TokenType::Empty {
-                    return Err(String::from("Error, no character to match plus (+) with"));
+                if r.states.len() == 1 {
+                    let last_state = r.states.last().unwrap();
+                    if last_state.token.token == TokenType::Empty {
+                        return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
+                    }
                 }
                 r
             }
-            None => return Err(String::from("Error, no character to match star (*) with")),
+            None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
         };
-        let mut new_nfa = Nfa::new(TokenType::Empty);
+        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
 
         new_nfa.merge(star_nfa);
 
         // difference to star: this line
         // new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
-        new_nfa.merge(Nfa::new(TokenType::Empty));
+        new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
         new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
 
         self.nfa_stack.push(new_nfa);

@@ -1,4 +1,4 @@
-use crate::lexer::token_type::TokenType;
+use crate::lexer::token_type::{Token, TokenType};
 
 /// Represents a state inside the NFA.
 ///
@@ -7,7 +7,7 @@ use crate::lexer::token_type::TokenType;
 ///            of the next state, and the pointer to the next state.
 ///            The pointers to states of the NFA is represented as vector indices.
 pub(crate) struct State {
-    pub token: TokenType,
+    pub token: Token,
     // at most, this is 2. so, maybe I can optimize this.
     pub edges: Vec<(TokenType, usize)>,
 }
@@ -16,7 +16,7 @@ impl State {
     /// Constructs a new state with the specified token.
     ///
     /// * `token`: the specified token.
-    pub fn new(token: TokenType) -> Self {
+    pub fn new(token: Token) -> Self {
         Self {
             token,
             edges: Vec::new(), }

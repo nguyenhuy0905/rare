@@ -1,15 +1,15 @@
-use super::token_type::TokenType;
+use super::token_type::{Token, TokenType};
 /// A scanner converts a raw string into an infix list of tokens. At the moment, the scanner, and
 /// hence all other components of this regular expression engine, only works on ASCII characters.
 ///
 /// * `token_list`: the resultant infix token list. Only valid after `Scanner::scan` is called.
 /// * `input`: a reference to the input string. Since this is only a reference, the lifetime of the
 ///            input string must be at least that of the Scanner.
-/// * `curr_scan_fn`: the function called by the scanner for each character it reads. 
+/// * `curr_scan_fn`: the function called by the scanner for each character it reads.
 /// * `concat_next`: whether a concatenation notation may be inserted when scanning the next
 ///                  character.
 pub(crate) struct Scanner<'a> {
-    token_list: Vec<TokenType>,
+    token_list: Vec<Token>,
     input: &'a str,
     curr_scan_fn: fn(&mut Scanner<'a>, char) -> TokenType,
     concat_next: bool,
@@ -33,6 +33,8 @@ impl<'a> Scanner<'a> {
     ///
     /// The scanner is expected to be consumed by the postfix converter after this step.
     pub fn scan(&mut self) {
+        let mut idx: usize = 0;
+
         for input_char in self.input.chars() {
             let ret_token = (self.curr_scan_fn)(self, input_char);
             let mut need_concat = ret_token.need_concat_next();
@@ -44,13 +46,14 @@ impl<'a> Scanner<'a> {
                 }
                 TokenType::Character(_) | TokenType::Dot | TokenType::LParen => {
                     if self.concat_next {
-                        self.token_list.push(TokenType::Concat);
+                        self.token_list.push(Token::new(idx, TokenType::Concat));
                     }
-                    self.token_list.push(ret_token);
+                    self.token_list.push(Token::new(idx, ret_token));
                 }
-                _ => self.token_list.push(ret_token),
+                _ => self.token_list.push(Token::new(idx, ret_token)),
             }
             self.concat_next = need_concat;
+            idx += 1;
         }
     }
 
@@ -80,7 +83,7 @@ impl<'a> Scanner<'a> {
     /// The scan function called if the last character scanned is an escape.
     /// After this function is called, the scanner's next scan function is `scan_char`.
     ///
-    /// * `input_char`: 
+    /// * `input_char`:
     pub fn scan_escape(&mut self, input_char: char) -> TokenType {
         self.curr_scan_fn = Scanner::scan_char;
         TokenType::Character(input_char)
@@ -88,12 +91,12 @@ impl<'a> Scanner<'a> {
 
     /// Reverses the token list, or in other words, convert the token list held by this scanner
     /// into a stack.
-    pub(in crate) fn reverse_token_list(&mut self) {
+    pub(crate) fn reverse_token_list(&mut self) {
         self.token_list.reverse();
     }
 
     /// Takes the token list from this scanner and incinerate the scanner.
-    pub fn move_vec(self) -> Vec<TokenType> {
+    pub fn move_vec(self) -> Vec<Token> {
         self.token_list
     }
 
@@ -101,7 +104,7 @@ impl<'a> Scanner<'a> {
     /// Prints the entire token list of this scanner. Only useful for debugging.
     pub fn print_tokens(&self) {
         for tok in self.token_list.iter() {
-            println!("{}", tok);
+            println!("{}", tok.token);
         }
     }
 }

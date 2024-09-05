@@ -21,7 +21,13 @@ fn main() -> io::Result<()> {
         }
     };
 
-    let regex = parser.parse();
+    let regex = match parser.parse() {
+        Ok(r) => r,
+        Err(msg) => {
+            println!("Error: {msg}");
+            exit(1);
+        }
+    };
 
     let stdin = io::stdin();
     while let Some(Ok(input)) = stdin.lock().lines().next() {

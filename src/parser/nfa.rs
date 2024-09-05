@@ -1,5 +1,5 @@
 use super::state::State;
-use crate::lexer::token_type::TokenType;
+use crate::lexer::token_type::Token;
 
 /// Nondeterministic finite automaton (NFA). Basically the representation of the regular
 /// expression.
@@ -17,9 +17,9 @@ pub(crate) struct Nfa {
 impl Nfa {
     /// Constructs a new NFA.
     /// A new NFA should always has 1 state inside.
-    /// 
+    ///
     /// * Return: the newly constructed NFA.
-    pub fn new(first_input: TokenType) -> Self {
+    pub fn new(first_input: Token) -> Self {
         Self {
             states: vec![State::new(first_input)],
             end: 0,
@@ -29,7 +29,7 @@ impl Nfa {
     /// Adds the specified state to the NFA.
     /// IMPORTANT: `Nfa::end` is assumed to be the last element in the NFA.
     ///
-    /// * `state`: 
+    /// * `state`:
     pub fn add_state(&mut self, state: State) {
         self.states.push(state);
         self.end += 1;
@@ -38,7 +38,7 @@ impl Nfa {
     /// Merges 2 NFAs together. The `self` NFA precedes the `another` NFA, that is, `self::end`
     /// points to `another::start` (which is, the first element in `another`'s states list).
     ///
-    /// * `another`: 
+    /// * `another`:
     pub fn merge(&mut self, mut another: Nfa) {
         for state in another.states.iter_mut() {
             for edge in state.edges.iter_mut() {
@@ -52,7 +52,7 @@ impl Nfa {
             self.states
                 .get_mut(self.end)
                 .unwrap()
-                .add_edge(another.states.first().unwrap().token.clone(), l);
+                .add_edge(another.states.first().unwrap().token.token.clone(), l);
             self.states.append(&mut another.states);
         }
 
@@ -62,7 +62,7 @@ impl Nfa {
     /// A more graceful way of accessing the NFA's state.
     /// But the author may be too lazy to use this function :(.
     ///
-    /// * `index`: 
+    /// * `index`:
     pub fn get_state(&self, index: usize) -> Option<&State> {
         self.states.get(index)
     }
@@ -74,7 +74,7 @@ impl Nfa {
             if std::ptr::eq(state, self.states.last().unwrap()) {
                 print!("last ");
             }
-            println!("state (index {idx}): {}", state.token);
+            println!("state (index {idx}): {}", state.token.token);
             print!("\tedges: ");
             for edge in state.edges.iter() {
                 print!("{}, to index {}; ", edge.0, edge.1);
