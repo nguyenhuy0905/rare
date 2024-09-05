@@ -186,8 +186,6 @@ impl Regex {
                         str_ptr: ref_elem.str_ptr,
                     })
                     .collect();
-                // ref_stack.sort_unstable_by_key(|e| e.ref_ptr);
-                // ref_stack.reverse();
                 ref_stack.append(&mut empty_nexts);
             }
             if let Some(match_token) = ref_str

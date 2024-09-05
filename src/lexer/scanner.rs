@@ -42,45 +42,14 @@ impl<'a> Scanner<'a> {
                     // that of the last character.
                     need_concat = self.concat_next;
                 }
+                // TokenType::Dollar will be evaluated by the postfix converter.
                 TokenType::Character(_)
                 | TokenType::Dot
                 | TokenType::LParen
                 | TokenType::Dollar => self.push_need_concat(idx, ret_token),
-                TokenType::Hat => match self.token_list.last() {
-                    None => self.push_need_concat(idx, ret_token),
-                    Some(tok) => {
-                        if !(tok.token_type == TokenType::LParen
-                            || tok.token_type == TokenType::Beam)
-                        {
-                            return Err(format!(
-                                "Character {0} at {1}: {0} not at beginning of statement",
-                                ret_token, idx
-                            ));
-                        }
-                        self.push_need_concat(idx, ret_token);
-                    }
-                },
+                TokenType::Hat => self.handle_push_hat(idx)?,
                 TokenType::QuestionMark | TokenType::Star | TokenType::Plus => {
-                    match self.token_list.last() {
-                        None => {
-                            return Err(format!(
-                                "Character {0} at {1}: {0} at beginning of statement",
-                                ret_token, idx
-                            ))
-                        }
-
-                        Some(tok) => {
-                            if tok.token_type == TokenType::LParen
-                                || tok.token_type == TokenType::Beam
-                            {
-                                return Err(format!(
-                                    "Character {0} at {1}: {0} at beginning of statement",
-                                    ret_token, idx
-                                ));
-                            }
-                            self.token_list.push(Token::new(idx, ret_token));
-                        }
-                    }
+                    self.handle_push_single_quantifier(idx, ret_token)?
                 }
                 _ => self.token_list.push(Token::new(idx, ret_token)),
             }
@@ -88,13 +57,6 @@ impl<'a> Scanner<'a> {
         }
 
         Ok(())
-    }
-
-    fn push_need_concat(&mut self, idx: usize, token: TokenType) {
-        if self.concat_next {
-            self.token_list.push(Token::new(idx, TokenType::Concat));
-        }
-        self.token_list.push(Token::new(idx, token));
     }
 
     /// Scans the input character.
@@ -127,7 +89,7 @@ impl<'a> Scanner<'a> {
     /// After this function is called, the scanner's next scan function is `scan_char`.
     ///
     /// * `input_char`:
-    pub fn scan_escape(&mut self, input_char: char) -> TokenType {
+    fn scan_escape(&mut self, input_char: char) -> TokenType {
         self.curr_scan_fn = Scanner::scan_char;
         TokenType::Character(input_char)
     }
@@ -149,6 +111,68 @@ impl<'a> Scanner<'a> {
         for tok in self.token_list.iter() {
             println!("{}", tok.token_type);
         }
+    }
+
+    /// Pushes the characters/symbols who may need concatenation with the preceding symbol.
+    ///
+    /// * `idx`: the string index.
+    /// * `token`: the token type to push on.
+    fn push_need_concat(&mut self, idx: usize, token: TokenType) {
+        if self.concat_next {
+            self.token_list.push(Token::new(idx, TokenType::Concat));
+        }
+        self.token_list.push(Token::new(idx, token));
+    }
+
+    /// Handles pushing hat (^) token onto the stack.
+    ///
+    /// * `idx`:
+    fn handle_push_hat(&mut self, idx: usize) -> Result<(), String> {
+        match self.token_list.last() {
+            None => self.push_need_concat(idx, TokenType::Hat),
+            Some(tok) => {
+                if !(tok.token_type == TokenType::LParen || tok.token_type == TokenType::Beam) {
+                    return Err(format!(
+                        "Character {0} at {1}: {0} not at beginning of statement",
+                        TokenType::Hat,
+                        idx
+                    ));
+                }
+                self.push_need_concat(idx, TokenType::Hat);
+            }
+        }
+        Ok(())
+    }
+
+    /// Handles pushing star (*), plus (+) and question mark (?) onto the stack.
+    /// These are single-character symbols, hence the name.
+    ///
+    /// * `idx`: the string index
+    /// * `token`: the token type
+    fn handle_push_single_quantifier(
+        &mut self,
+        idx: usize,
+        token: TokenType,
+    ) -> Result<(), String> {
+        match self.token_list.last() {
+            None => {
+                return Err(format!(
+                    "Character {0} at {1}: {0} at beginning of statement",
+                    token, idx
+                ))
+            }
+
+            Some(tok) => {
+                if tok.token_type == TokenType::LParen || tok.token_type == TokenType::Beam {
+                    return Err(format!(
+                        "Character {0} at {1}: {0} at beginning of statement",
+                        token, idx
+                    ));
+                }
+                self.token_list.push(Token::new(idx, token));
+            }
+        }
+        Ok(())
     }
 }
 
