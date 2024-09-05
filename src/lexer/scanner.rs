@@ -32,7 +32,7 @@ impl<'a> Scanner<'a> {
     /// Scans the input string that the scanner holds.
     ///
     /// The scanner is expected to be consumed by the postfix converter after this step.
-    pub fn scan(&mut self) {
+    pub fn scan(&mut self) -> Result<(), String> {
         for (idx, input_char) in self.input.chars().enumerate() {
             let ret_token = (self.curr_scan_fn)(self, input_char);
             let mut need_concat = ret_token.need_concat_next();
@@ -42,16 +42,59 @@ impl<'a> Scanner<'a> {
                     // that of the last character.
                     need_concat = self.concat_next;
                 }
-                TokenType::Character(_) | TokenType::Dot | TokenType::LParen => {
-                    if self.concat_next {
-                        self.token_list.push(Token::new(idx, TokenType::Concat));
+                TokenType::Character(_)
+                | TokenType::Dot
+                | TokenType::LParen
+                | TokenType::Dollar => self.push_need_concat(idx, ret_token),
+                TokenType::Hat => match self.token_list.last() {
+                    None => self.push_need_concat(idx, ret_token),
+                    Some(tok) => {
+                        if !(tok.token_type == TokenType::LParen
+                            || tok.token_type == TokenType::Beam)
+                        {
+                            return Err(format!(
+                                "Character {0} at {1}: {0} not at beginning of statement",
+                                ret_token, idx
+                            ));
+                        }
+                        self.push_need_concat(idx, ret_token);
                     }
-                    self.token_list.push(Token::new(idx, ret_token));
+                },
+                TokenType::QuestionMark | TokenType::Star | TokenType::Plus => {
+                    match self.token_list.last() {
+                        None => {
+                            return Err(format!(
+                                "Character {0} at {1}: {0} at beginning of statement",
+                                ret_token, idx
+                            ))
+                        }
+
+                        Some(tok) => {
+                            if tok.token_type == TokenType::LParen
+                                || tok.token_type == TokenType::Beam
+                            {
+                                return Err(format!(
+                                    "Character {0} at {1}: {0} at beginning of statement",
+                                    ret_token, idx
+                                ));
+                            }
+                            self.token_list.push(Token::new(idx, ret_token));
+                        }
+                    }
                 }
                 _ => self.token_list.push(Token::new(idx, ret_token)),
             }
             self.concat_next = need_concat;
         }
+
+        Ok(())
+    }
+
+    fn push_need_concat(&mut self, idx: usize, token: TokenType) {
+        if self.concat_next {
+            self.token_list.push(Token::new(idx, TokenType::Concat));
+        }
+        self.token_list.push(Token::new(idx, token));
     }
 
     /// Scans the input character.
@@ -66,6 +109,8 @@ impl<'a> Scanner<'a> {
             '*' => TokenType::Star,
             '|' => TokenType::Beam,
             '+' => TokenType::Plus,
+            '^' => TokenType::Hat,
+            '$' => TokenType::Dollar,
             '?' => TokenType::QuestionMark,
             '(' => TokenType::LParen,
             ')' => TokenType::RParen,
@@ -74,6 +119,7 @@ impl<'a> Scanner<'a> {
                 TokenType::Escape
             }
             _ => TokenType::Character(input_char),
+            // the user cannot input the concat token.
         }
     }
 

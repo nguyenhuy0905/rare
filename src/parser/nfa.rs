@@ -1,5 +1,5 @@
 use super::state::State;
-use crate::lexer::token_type::Token;
+use crate::lexer::token_type::{Token, TokenType};
 
 /// Nondeterministic finite automaton (NFA). Basically the representation of the regular
 /// expression.
@@ -47,16 +47,25 @@ impl Nfa {
         }
 
         {
+            let bridge = &another.states.first().unwrap().token.token_type;
             // damn you borrow checker
             let l = self.states.len();
             self.states
                 .get_mut(self.end)
                 .unwrap()
-                .add_edge(another.states.first().unwrap().token.token_type.clone(), l);
+                .add_edge(Nfa::next_edge(bridge), l);
             self.states.append(&mut another.states);
         }
 
         self.end = self.states.len() - 1;
+    }
+
+    pub(crate) fn next_edge(next: &TokenType) -> TokenType {
+            match next {
+                TokenType::Hat | TokenType::Dollar => TokenType::Empty,
+                _ => next.clone(),
+            }
+        
     }
 
     /// A more graceful way of accessing the NFA's state.

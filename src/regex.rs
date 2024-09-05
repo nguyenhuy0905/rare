@@ -21,13 +21,18 @@ impl Regex {
     ///
     /// * `string`:
     pub fn first_match<'a>(&self, string: &'a str) -> Option<&'a str> {
-        if let Some(ret) = self.match_step_substr(string) {
+        self.first_match_priv(string, 0)
+    }
+
+    fn first_match_priv<'a>(&self, string: &'a str, pos: usize) -> Option<&'a str> {
+        if let Some(ret) = self.match_step_substr(string, pos) {
             return Some(ret);
         }
         if string.is_empty() {
             return None;
         }
-        self.first_match(&string[1..])
+
+        self.first_match_priv(string, 1 + pos)
     }
 
     pub fn match_all_index(&self, string: &str) -> Option<LinkedList<(usize, usize)>> {
@@ -35,11 +40,14 @@ impl Regex {
         let mut str_ptr: usize = 0;
 
         while str_ptr < string.len() {
-            if let Some(substr_idx) = self.match_step_index(&string[str_ptr..]) {
-                ret.push_back((str_ptr, str_ptr + substr_idx));
-                str_ptr += if substr_idx > 0 {substr_idx} else {1};
-            }
-            else {
+            if let Some(substr_idx) = self.match_step_index(string, str_ptr) {
+                ret.push_back((str_ptr, substr_idx));
+                str_ptr += if substr_idx > str_ptr {
+                    substr_idx - str_ptr
+                } else {
+                    1
+                };
+            } else {
                 str_ptr += 1;
             }
         }
@@ -55,18 +63,17 @@ impl Regex {
     /// Try to match until the end of the string.
     /// Since the return collection can grow really large, a LinkedList is used.
     ///
-    /// * `string`: 
+    /// * `string`:
     /// * Return: A linked list of all matched string.
     pub fn match_all<'a>(&self, string: &'a str) -> Option<LinkedList<&'a str>> {
         let mut ret: LinkedList<&'a str> = LinkedList::new();
         let mut str_ptr: usize = 0;
-        
+
         while str_ptr < string.len() {
-            if let Some(substr_idx) = self.match_step_index(&string[str_ptr..]) {
-                ret.push_back(&string[str_ptr..=(str_ptr + substr_idx)]);
-                str_ptr += if substr_idx > 0 {substr_idx} else {1};
-            }
-            else {
+            if let Some(substr_idx) = self.match_step_index(string, str_ptr) {
+                ret.push_back(&string[str_ptr..=substr_idx]);
+                str_ptr += if substr_idx > 0 { substr_idx } else { 1 };
+            } else {
                 str_ptr += 1;
             }
         }
@@ -90,8 +97,8 @@ impl Regex {
     /// Returns the matching part of the string if there is any. And None otherwise.
     ///
     /// * `string`:
-    fn match_step_substr<'a>(&self, string: &'a str) -> Option<&'a str> {
-        if let Some(idx) = self.match_step_index(string) {
+    fn match_step_substr<'a>(&self, string: &'a str, pos: usize) -> Option<&'a str> {
+        if let Some(idx) = self.match_step_index(string, pos) {
             return Some(&string[0..idx]);
         }
 
@@ -100,13 +107,13 @@ impl Regex {
         None
     }
 
-    /// Returns the index, of which the substring from 0 to the returned index matches the regex.
+    /// Returns the index, of which the substring from pos to the returned index matches the regex.
     /// If it doesn't match, returns None.
     ///
     /// Note: the first tuple element is currently bugged. Do not use it.
     ///
     /// * `string`:
-    fn match_step_index(&self, string: &str) -> Option<usize> {
+    fn match_step_index(&self, ref_str: &str, pos: usize) -> Option<usize> {
         // TL;DR: a kind-of DFS algorithm. I would say it's a bit more complicated because the
         // program also needs to keep track of the parts of the string it's trying to match.
 
@@ -121,16 +128,28 @@ impl Regex {
 
         let mut ref_stack: Vec<RefStackElem> = vec![RefStackElem {
             ref_ptr: 0,
-            str_ptr: 0,
+            str_ptr: pos,
         }];
 
         while let Some(ref_elem) = ref_stack.pop() {
+            let top_token = self.nfa.get_state(ref_elem.ref_ptr).unwrap();
+            match top_token.token.token_type {
+                TokenType::Dollar => {
+                    if ref_elem.str_ptr < ref_str.len() - 1 {
+                        continue;
+                    }
+                }
+                TokenType::Hat => {
+                    if pos > 0 {
+                        continue;
+                    }
+                }
+                _ => {}
+            };
+            // i should let the panic be inside the get_state function, if I want it to panic.
             if ref_elem.ref_ptr == self.nfa.end {
-                // why is it minus 1? I have no idea.
                 return Some(ref_elem.str_ptr);
             }
-            // i should let the panic be inside the get_state function, if I want it to panic.
-            let top_token = self.nfa.get_state(ref_elem.ref_ptr).unwrap();
 
             // this is a kind of lazy way to handle the stack. I may need to think of a better way
             // some time.
@@ -139,7 +158,11 @@ impl Regex {
             // anymore, reserve to the empty transitions list.
             {
                 let mut empty_nexts: Vec<RefStackElem> = top_token
-                    .get_next_indices(|token| token.0 == TokenType::Empty)
+                    .get_next_indices(|token| {
+                        token.0 == TokenType::Empty
+                            || token.0 == TokenType::Hat
+                            || token.0 == TokenType::Dollar
+                    })
                     .iter()
                     .map(|&idx| RefStackElem {
                         ref_ptr: idx,
@@ -148,8 +171,21 @@ impl Regex {
                     .collect();
                 ref_stack.append(&mut empty_nexts);
             }
-
-            if let Some(match_token) = string
+            // {
+            //     let mut anchor_nexts: Vec<RefStackElem> = top_token
+            //         .get_next_indices(|token| {
+            //             token.0 == TokenType::Hat || token.0 == TokenType::Dollar
+            //         })
+            //         .iter()
+            //         .map(|&idx| RefStackElem {
+            //             ref_ptr: idx,
+            //             str_ptr: ref_elem.str_ptr,
+            //         })
+            //         .collect();
+            //     ref_stack.append(&mut anchor_nexts);
+            // }
+            //
+            if let Some(match_token) = ref_str
                 .chars()
                 .nth(ref_elem.str_ptr)
                 .map(TokenType::Character)

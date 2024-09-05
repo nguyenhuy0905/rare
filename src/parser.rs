@@ -35,7 +35,7 @@ impl Parser {
     pub fn new(regex: &str) -> Result<Self, String> {
         let mut pfix_stack = {
             let mut scanner = Scanner::new(regex);
-            scanner.scan();
+            scanner.scan()?;
             // i should redesign the convert method.
             let conv = PostfixConverter::from_scanner(scanner);
             match conv.convert() {

@@ -10,11 +10,13 @@ pub enum TokenType {
     LParen,
     RParen,
     Beam,
+    /// Simply concatenates the 2 tokens it stands between
     Concat,
     QuestionMark,
     Plus,
     Star,
-    /// Simply concatenates the 2 tokens it stands between
+    Hat,
+    Dollar,
     /// Characters don't have precedence
     Character(char),
     Dot,
@@ -94,6 +96,8 @@ impl fmt::Display for TokenType {
             TokenType::Beam => write!(f, "|"),
             TokenType::QuestionMark => write!(f, "?"),
             TokenType::Plus => write!(f, "+"),
+            TokenType::Hat => write!(f, "^"),
+            TokenType::Dollar => write!(f, "$"),
             TokenType::LParen => write!(f, "("),
             TokenType::RParen => write!(f, ")"),
             TokenType::Escape => write!(f, "\\"),

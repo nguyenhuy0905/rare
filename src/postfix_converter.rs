@@ -42,7 +42,28 @@ impl PostfixConverter {
     pub fn convert(mut self) -> Result<PostfixConverter, String> {
         while let Some(tok) = self.infix_token_stack.pop() {
             if !tok.token_type.is_symbol() {
-                self.postfix_token_list.push(tok);
+                match tok.token_type {
+                    // TokenType::Hat => {
+                    //     if !self.is_begin() {
+                    //         return Err(format!(
+                    //             "Character {0} at {1}: {0} not at beginning",
+                    //             tok.token_type, tok.pos
+                    //         ));
+                    //     }
+                    //     self.postfix_token_list.push(tok);
+                    // },
+                    TokenType::Dollar => {
+                        if !self.is_end() {
+                            return Err(format!(
+                                "Character {0} at {1}: {0} not at end",
+                                tok.token_type, tok.pos
+                            ));
+                        }
+                        self.postfix_token_list.push(tok);
+
+                    },
+                    _ => self.postfix_token_list.push(tok),
+                }
             } else if let Err(estr) = self.push_symbol(tok) {
                 return Err(estr);
             }
@@ -134,18 +155,18 @@ impl PostfixConverter {
                     self.symbol_stack.push(tok);
                 }
             },
-            TokenType::Star | TokenType::Plus | TokenType::QuestionMark => {
-                // basically, if the last symbol is LParen or Beam
-                if (!self.symbol_stack.is_empty() && self.is_begin())
-                    || self.postfix_token_list.is_empty()
-                {
-                    return Err(format!(
-                        "Character {0} at {1}: {0} at the beginning of statement",
-                        tok.token_type, tok.pos
-                    ));
-                }
-                self.postfix_token_list.push(tok);
-            },
+            // TokenType::Star | TokenType::Plus | TokenType::QuestionMark => {
+            //     // basically, if the last symbol is LParen or Beam
+            //     if (!self.symbol_stack.is_empty() && self.is_begin())
+            //         || self.postfix_token_list.is_empty()
+            //     {
+            //         return Err(format!(
+            //             "Character {0} at {1}: {0} at the beginning of statement",
+            //             tok.token_type, tok.pos
+            //         ));
+            //     }
+            //     self.postfix_token_list.push(tok);
+            // }
             _ => {
                 self.postfix_token_list.push(tok);
             }
@@ -154,22 +175,11 @@ impl PostfixConverter {
         Ok(())
     }
 
-    /// Returns whether the last symbol on the symbol stack (aka, the previous symbol) is:
-    /// * A left parentheses or a beam,
-    /// * Non-existent
-    fn is_begin(&self) -> bool {
-        // LParen and Beam is start of a new statement.
-        // So, having quantifiers right after these is the same as having them at the
-        // beginning of a statement.
-        match self.symbol_stack.last() {
-            None => true,
-            Some(tok) => tok.token_type == TokenType::LParen || tok.token_type == TokenType::Beam,
-        }
-    }
-
     /// Returns whether the last symbol on the infix token stack (aka, the next symbol) is:
     /// * A right parentheses or a beam,
     /// * Non-existent.
+    ///
+    /// For now this is only used to catch syntax error related to the $ anchor.
     fn is_end(&self) -> bool {
         match self.infix_token_stack.last() {
             None => true,
