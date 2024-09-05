@@ -113,9 +113,11 @@ And here is an example using the CLI:
 - However, `grep` has its dark magic, in which, for longer strings, it actually
 runs faster.
 - So, for long inputs, I don't expect this program to come any close to `grep`.
-- This is a rare moment where it actually beats out grep:
+- These are some moments when it actually beats out grep:
 
 ![I did it boys](https://github.com/user-attachments/assets/1a2e2d4b-517f-4d56-91a3-03f557966ddf)
+![And AGAIN!!!](https://github.com/user-attachments/assets/6ce017b6-2b04-4dc9-a8aa-3b4f8422f56f)
+
 
 ### Performance consideration: linked list vs vector
 
