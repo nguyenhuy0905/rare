@@ -21,6 +21,7 @@ If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
 - If you use the CLI, this program highlights all parts of line that match the
 regular expression.
+- The worst-case time complexity should be $O(mn)$
 
 ## What does it support currently?
 
@@ -30,6 +31,8 @@ regular expression.
 - Or boolean |.
 - Plus (+).
 - Question mark (?).
+- Hat (^).
+- Dollar sign ($).
 
 ## How to use
 
@@ -58,11 +61,8 @@ And here is an example using the CLI:
 
 ## TODO
 
+- Tidy up the code base.
 - Develop some more notations:
-  - Hat (^). This one is simpler: just don't creep up a character when the
-  first attempt fails.
-  - Dollar sign ($). A simple way is to just keep running even if there's already
-  a match, if that match doesn't reach the end of the string.
   - Range match (\[a-z\]). Basically dot but more limited.
   - Limiter ({a,b}). Copy-and-pasting the NFA right before it, a times. Then add
   (b - a) beams (OR). Each of these either go empty or go to the copy-pasted NFA.
