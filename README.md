@@ -19,11 +19,8 @@ into a nondeterministic finite automaton (NFA).
 - Finally, given a string, the regex program traverses the resultant NFA.
 If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
-- If you use the CLI, this program simply checks which line has a match to the
-regular expression, then prints the part of the line that first matches the regex.
-That's it. Not even the highlight you get when you `grep`.
-  - Note, this implies that, ".\*" always only prints the first letter.
-  - A "match all" method will be added soon.
+- If you use the CLI, this program highlights all parts of line that match the
+regular expression.
 
 ## What does it support currently?
 
@@ -60,11 +57,6 @@ And here is an example using the CLI:
 ![CLI example](https://github.com/user-attachments/assets/22b5dc13-9d71-4690-b8f9-46f16790f38f)
 
 ## TODO
-
-- Add the remaining notations: yay i got it done.
-
-- More graceful error handling:
-  - There's a lot of panicking. Need to chop down probably half of those.
 
 - Develop some more notations:
   - Hat (^). This one is simpler: just don't creep up a character when the
