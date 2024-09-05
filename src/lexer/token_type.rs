@@ -88,15 +88,15 @@ impl fmt::Display for TokenType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             TokenType::Empty => write!(f, "Empty"),
-            TokenType::Character(c) => write!(f, "Character: {}", c),
-            TokenType::Dot => write!(f, "Dot (.)"),
-            TokenType::Star => write!(f, "Star (*)"),
-            TokenType::Beam => write!(f, "Beam (|)"),
-            TokenType::QuestionMark => write!(f, "Question mark (?)"),
-            TokenType::Plus => write!(f, "Plus (+)"),
-            TokenType::LParen => write!(f, "Left parentheses (()"),
-            TokenType::RParen => write!(f, "Right parentheses ())"),
-            TokenType::Escape => write!(f, "Escape (\\)"),
+            TokenType::Character(c) => write!(f, "{}", c),
+            TokenType::Dot => write!(f, "."),
+            TokenType::Star => write!(f, "*"),
+            TokenType::Beam => write!(f, "|"),
+            TokenType::QuestionMark => write!(f, "?"),
+            TokenType::Plus => write!(f, "+"),
+            TokenType::LParen => write!(f, "("),
+            TokenType::RParen => write!(f, ")"),
+            TokenType::Escape => write!(f, "\\"),
             TokenType::Concat => write!(f, "Concatenation"),
         }
     }

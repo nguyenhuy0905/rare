@@ -142,10 +142,10 @@ impl PostfixConverter {
                         return Ok(());
                     }
                     
-                    return Err(format!("Character {0} at {1}: {0} at the beginning", tok.token_type, tok.pos));
+                    return Err(format!("Character {0} at {1}: {0} at the beginning of statement", tok.token_type, tok.pos));
                 }
                 else if self.postfix_token_list.last().is_none() {
-                    return Err(format!("Character {0} at {1}: {0} at the beginning", tok.token_type, tok.pos));
+                    return Err(format!("Character {0} at {1}: {0} at the beginning of statement", tok.token_type, tok.pos));
                 }
                 self.postfix_token_list.push(tok);
             }
