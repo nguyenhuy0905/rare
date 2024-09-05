@@ -3,7 +3,7 @@ use std::{
     process::exit,
 };
 
-use rare::rare::RARE;
+use rare::RARE;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
