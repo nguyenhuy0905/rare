@@ -116,7 +116,8 @@ impl Parser {
 
     /// Processes the beam symbol
     ///
-    /// The beam symbol needs at least 1 NFA in the NFA stack.
+    /// The beam symbol needs at least 1 NFA in the NFA stack. If the 2nd NFA isn't there, aka, one
+    /// side of the beam is empty, empty is chosen.
     /// note: the parser doesn't check whether the 2 NFAs are exactly equivalent, because the
     /// resultant Regex is still valid without that check.
     fn handle_beam(&mut self, pos: usize) -> Result<(), String> {

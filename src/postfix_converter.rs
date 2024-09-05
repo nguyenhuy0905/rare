@@ -135,26 +135,46 @@ impl PostfixConverter {
                 }
             },
             TokenType::Star | TokenType::Plus | TokenType::QuestionMark => {
-                if let Some(last_sym) = self.symbol_stack.last() {
-                    if !(last_sym.token_type == TokenType::LParen
-                        || last_sym.token_type == TokenType::Beam)
-                    {
-                        return Ok(());
-                    }
-                    
-                    return Err(format!("Character {0} at {1}: {0} at the beginning of statement", tok.token_type, tok.pos));
-                }
-                else if self.postfix_token_list.last().is_none() {
-                    return Err(format!("Character {0} at {1}: {0} at the beginning of statement", tok.token_type, tok.pos));
+                // basically, if the last symbol is LParen or Beam
+                if (!self.symbol_stack.is_empty() && self.is_begin())
+                    || self.postfix_token_list.is_empty()
+                {
+                    return Err(format!(
+                        "Character {0} at {1}: {0} at the beginning of statement",
+                        tok.token_type, tok.pos
+                    ));
                 }
                 self.postfix_token_list.push(tok);
-            }
+            },
             _ => {
                 self.postfix_token_list.push(tok);
             }
         }
 
         Ok(())
+    }
+
+    /// Returns whether the last symbol on the symbol stack (aka, the previous symbol) is:
+    /// * A left parentheses or a beam,
+    /// * Non-existent
+    fn is_begin(&self) -> bool {
+        // LParen and Beam is start of a new statement.
+        // So, having quantifiers right after these is the same as having them at the
+        // beginning of a statement.
+        match self.symbol_stack.last() {
+            None => true,
+            Some(tok) => tok.token_type == TokenType::LParen || tok.token_type == TokenType::Beam,
+        }
+    }
+
+    /// Returns whether the last symbol on the infix token stack (aka, the next symbol) is:
+    /// * A right parentheses or a beam,
+    /// * Non-existent.
+    fn is_end(&self) -> bool {
+        match self.infix_token_stack.last() {
+            None => true,
+            Some(tok) => tok.token_type == TokenType::RParen || tok.token_type == TokenType::Beam,
+        }
     }
 }
 
