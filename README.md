@@ -54,7 +54,7 @@ assert!(regex.is_match(".cpp"));
 
 And here is an example using the CLI:
 
-![CLI example](https://github.com/user-attachments/assets/22b5dc13-9d71-4690-b8f9-46f16790f38f)
+![CLI example](https://github.com/user-attachments/assets/200f1135-8c94-4964-8846-65d7e4bd9862)
 
 ## TODO
 
