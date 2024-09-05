@@ -40,9 +40,9 @@ fn main() -> io::Result<()> {
                 print!(
                     "{0}\x1b[31m\x1b[1m{1}\x1b[0m",
                     &input[prev_last_idx..substr_range.0],
-                    &input[substr_range.0..=substr_range.1]
+                    &input[substr_range.0..substr_range.1]
                 );
-                prev_last_idx = substr_range.1 + 1;
+                prev_last_idx = substr_range.1;
             }
             print!("{0}", &input[prev_last_idx..]);
             println!();

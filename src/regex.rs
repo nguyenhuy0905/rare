@@ -92,7 +92,7 @@ impl Regex {
     /// * `string`:
     fn match_step_substr<'a>(&self, string: &'a str) -> Option<&'a str> {
         if let Some(idx) = self.match_step_index(string) {
-            return Some(&string[0..=idx]);
+            return Some(&string[0..idx]);
         }
 
         // if this part of the string doesn't match and the string is not empty yet, try this on
@@ -127,7 +127,7 @@ impl Regex {
         while let Some(ref_elem) = ref_stack.pop() {
             if ref_elem.ref_ptr == self.nfa.end {
                 // why is it minus 1? I have no idea.
-                return Some(ref_elem.str_ptr - 1);
+                return Some(ref_elem.str_ptr);
             }
             // i should let the panic be inside the get_state function, if I want it to panic.
             let top_token = self.nfa.get_state(ref_elem.ref_ptr).unwrap();
