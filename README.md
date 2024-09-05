@@ -1,4 +1,4 @@
-# Rust awkward regex engine
+# Rust awkward regex engine (RARE)
 
 > [!NOTE]
 > Work in progress.
@@ -39,19 +39,48 @@ regular expression.
 - Here's a code example:
 
 ```rust
-
-let regex = "\\.(c(xx|pp)|h(xx|pp))";
-let mut parser = match Parser::new(regex) {
-    Ok(p) => p,
-    // It won't panic because I know how to write regex.
-    Err(msg) => panic!("{msg}"),
+use std::{
+    io::{self, BufRead},
+    process::exit,
 };
-let regex = parser.parse();
-// regex.nfa.print_states();
-assert!(regex.is_match("before the string cccccc.cxx and after"));
-assert!(!regex.is_match(".hcxx"));
-assert!(!regex.is_match(".hcxx"));
-assert!(regex.is_match(".cpp"));
+
+use rare::RARE;
+
+// taken straight from this project's main function.
+fn main() -> io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        panic!("Expected 1 argument")
+    }
+
+    let rare = match RARE::new(&args[1]) {
+        Ok(r) => r,
+        Err(msg) => {
+            println!("{msg}");
+            exit(1);
+        }
+    };
+
+    let stdin = io::stdin();
+    while let Some(Ok(input)) = stdin.lock().lines().next() {
+        if let Some(match_substr) = rare.match_all_index(&input) {
+            let mut prev_last_idx = 0;
+            for substr_range in &match_substr {
+                print!(
+                    "{0}\x1b[31m\x1b[1m{1}\x1b[0m",
+                    &input[prev_last_idx..substr_range.0],
+                    &input[substr_range.0..substr_range.1]
+                );
+                prev_last_idx = substr_range.1;
+                // println!("{0}, {1}", substr_range.0, substr_range.1);
+            }
+            print!("{0}", &input[prev_last_idx..]);
+            println!();
+        }
+    }
+
+    Ok(())
+}
 
 ```
 
@@ -61,7 +90,9 @@ And here is an example using the CLI:
 
 ## TODO
 
-- Tidy up the code base.
+- Tidy up the code base. (Halfway there).
+- Write usage documentation.
+- ~~Write a professional-looking blog post about this project~~.
 - Develop some more notations:
   - Range match (\[a-z\]). Basically dot but more limited.
   - Limiter ({a,b}). Copy-and-pasting the NFA right before it, a times. Then add
@@ -71,6 +102,8 @@ And here is an example using the CLI:
 
 - UTF-8?
   - Not until I have everything above finished.
+
+- ~~Rename to Rust Awesome Pattern Engine~~.
 
 ## Misc
 
@@ -101,3 +134,7 @@ returned collection can be really long.
 ### What does it have over grep?
 
 - Nothing. Maybe it's written in Rust?
+
+### What does it have over Rust's Regex crate?
+
+- Maybe something? I have never used that crate so I dunno.
