@@ -42,30 +42,9 @@ impl PostfixConverter {
     pub fn convert(mut self) -> Result<PostfixConverter, String> {
         while let Some(tok) = self.infix_token_stack.pop() {
             if !tok.token_type.is_symbol() {
-                match tok.token_type {
-                    // TokenType::Hat => {
-                    //     if !self.is_begin() {
-                    //         return Err(format!(
-                    //             "Character {0} at {1}: {0} not at beginning",
-                    //             tok.token_type, tok.pos
-                    //         ));
-                    //     }
-                    //     self.postfix_token_list.push(tok);
-                    // },
-                    TokenType::Dollar => {
-                        if !self.is_end() {
-                            return Err(format!(
-                                "Character {0} at {1}: {0} not at end",
-                                tok.token_type, tok.pos
-                            ));
-                        }
-                        self.postfix_token_list.push(tok);
-
-                    },
-                    _ => self.postfix_token_list.push(tok),
-                }
-            } else if let Err(estr) = self.push_symbol(tok) {
-                return Err(estr);
+                self.push_non_symbol(tok)?;
+            } else {
+                self.push_symbol(tok)?;
             }
         }
 
@@ -95,6 +74,26 @@ impl PostfixConverter {
         for tok in self.postfix_token_list.iter() {
             println!("{}", tok.token_type);
         }
+    }
+
+    /// Handles the non-symbol characters passed in.
+    ///
+    /// * `tok`: the token passed in.
+    fn push_non_symbol(&mut self, tok: Token) -> Result<(), String> {
+        match tok.token_type {
+            // TokenType::Hat is handled by the `Scanner`.
+            TokenType::Dollar => {
+                if !self.is_end() {
+                    return Err(format!(
+                        "Character {0} at {1}: {0} not at end",
+                        tok.token_type, tok.pos
+                    ));
+                }
+                self.postfix_token_list.push(tok);
+            }
+            _ => self.postfix_token_list.push(tok),
+        }
+        Ok(())
     }
 
     /// Handles the token passed in. This symbol is assumed to be the symbol just `pop`ped from
@@ -155,18 +154,7 @@ impl PostfixConverter {
                     self.symbol_stack.push(tok);
                 }
             },
-            // TokenType::Star | TokenType::Plus | TokenType::QuestionMark => {
-            //     // basically, if the last symbol is LParen or Beam
-            //     if (!self.symbol_stack.is_empty() && self.is_begin())
-            //         || self.postfix_token_list.is_empty()
-            //     {
-            //         return Err(format!(
-            //             "Character {0} at {1}: {0} at the beginning of statement",
-            //             tok.token_type, tok.pos
-            //         ));
-            //     }
-            //     self.postfix_token_list.push(tok);
-            // }
+            // the quantifiers
             _ => {
                 self.postfix_token_list.push(tok);
             }

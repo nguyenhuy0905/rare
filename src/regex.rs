@@ -19,11 +19,15 @@ impl Regex {
 
     /// Returns the first matching substring.
     ///
-    /// * `string`:
+    /// * `string`: the string to try match on.
     pub fn first_match<'a>(&self, string: &'a str) -> Option<&'a str> {
         self.first_match_priv(string, 0)
     }
 
+    /// The private, recursive part of first_match.
+    ///
+    /// * `string`: the string to try match on.
+    /// * `pos`: the string index.
     fn first_match_priv<'a>(&self, string: &'a str, pos: usize) -> Option<&'a str> {
         if let Some(ret) = self.match_step_substr(string, pos) {
             return Some(ret);
@@ -35,6 +39,10 @@ impl Regex {
         self.first_match_priv(string, 1 + pos)
     }
 
+    /// Returns a collection (in this case, LinkedList) of number pairs. The two numbers in each
+    /// pair represents the substring range that matches the regular expression.
+    ///
+    /// * `string`: the string to try match on.
     pub fn match_all_index(&self, string: &str) -> Option<LinkedList<(usize, usize)>> {
         let mut ret: LinkedList<(usize, usize)> = LinkedList::new();
         let mut str_ptr: usize = 0;
@@ -72,7 +80,11 @@ impl Regex {
         while str_ptr < string.len() {
             if let Some(substr_idx) = self.match_step_index(string, str_ptr) {
                 ret.push_back(&string[str_ptr..=substr_idx]);
-                str_ptr += if substr_idx > 0 { substr_idx } else { 1 };
+                str_ptr += if substr_idx > 0 {
+                    substr_idx - str_ptr
+                } else {
+                    1
+                };
             } else {
                 str_ptr += 1;
             }
@@ -94,7 +106,8 @@ impl Regex {
         self.first_match(string).is_some()
     }
 
-    /// Returns the matching part of the string if there is any. And None otherwise.
+    /// Tries to match the substring starting at `pos` with the regular expression.
+    /// Returns `true` if that substring matches, `false` otherwise.
     ///
     /// * `string`:
     fn match_step_substr<'a>(&self, string: &'a str, pos: usize) -> Option<&'a str> {
@@ -102,17 +115,14 @@ impl Regex {
             return Some(&string[0..idx]);
         }
 
-        // if this part of the string doesn't match and the string is not empty yet, try this on
-        // the same string, minus the first letter.
         None
     }
 
-    /// Returns the index, of which the substring from pos to the returned index matches the regex.
+    /// Returns the index, of which the substring from `pos` to the returned index matches the regex.
     /// If it doesn't match, returns None.
     ///
-    /// Note: the first tuple element is currently bugged. Do not use it.
-    ///
-    /// * `string`:
+    /// * `string`: the string to try match on.
+    /// * pos: the string index. This method tries match on &string[pos..]
     fn match_step_index(&self, ref_str: &str, pos: usize) -> Option<usize> {
         // TL;DR: a kind-of DFS algorithm. I would say it's a bit more complicated because the
         // program also needs to keep track of the parts of the string it's trying to match.
@@ -131,8 +141,12 @@ impl Regex {
             str_ptr: pos,
         }];
 
+        let mut max_match: Option<usize> = None;
+
         while let Some(ref_elem) = ref_stack.pop() {
+            // println!("element number: {}", ref_elem.ref_ptr);
             let top_token = self.nfa.get_state(ref_elem.ref_ptr).unwrap();
+            // println!("{0}, ref {1}", top_token.token.token_type, top_token.token.pos);
             match top_token.token.token_type {
                 TokenType::Dollar => {
                     if ref_elem.str_ptr < ref_str.len() - 1 {
@@ -148,7 +162,10 @@ impl Regex {
             };
             // i should let the panic be inside the get_state function, if I want it to panic.
             if ref_elem.ref_ptr == self.nfa.end {
-                return Some(ref_elem.str_ptr);
+                if max_match.is_none() || ref_elem.str_ptr > max_match.unwrap() {
+                    max_match = Some(ref_elem.str_ptr);
+                }
+                continue;
             }
 
             // this is a kind of lazy way to handle the stack. I may need to think of a better way
@@ -169,22 +186,10 @@ impl Regex {
                         str_ptr: ref_elem.str_ptr,
                     })
                     .collect();
+                // ref_stack.sort_unstable_by_key(|e| e.ref_ptr);
+                // ref_stack.reverse();
                 ref_stack.append(&mut empty_nexts);
             }
-            // {
-            //     let mut anchor_nexts: Vec<RefStackElem> = top_token
-            //         .get_next_indices(|token| {
-            //             token.0 == TokenType::Hat || token.0 == TokenType::Dollar
-            //         })
-            //         .iter()
-            //         .map(|&idx| RefStackElem {
-            //             ref_ptr: idx,
-            //             str_ptr: ref_elem.str_ptr,
-            //         })
-            //         .collect();
-            //     ref_stack.append(&mut anchor_nexts);
-            // }
-            //
             if let Some(match_token) = ref_str
                 .chars()
                 .nth(ref_elem.str_ptr)
@@ -203,7 +208,7 @@ impl Regex {
             }
         }
 
-        None
+        max_match
     }
 }
 

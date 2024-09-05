@@ -1,4 +1,7 @@
-use crate::{lexer::token_type::Token, regex::Regex};
+use crate::{
+    lexer::token_type::Token,
+    regex::Regex,
+};
 
 pub(crate) mod nfa;
 pub(crate) mod state;
@@ -128,7 +131,12 @@ impl Parser {
         //    └───>───(second_nfa)───>───┘
 
         let second_nfa = match self.nfa_stack.pop() {
-            None => return Err(format!("Operation | at {0}: No value to do an OR |", pos + 1)),
+            None => {
+                return Err(format!(
+                    "Operation | at {0}: No value to do an OR |",
+                    pos + 1
+                ))
+            }
             Some(ret) => ret,
         };
         let first_nfa = match self.nfa_stack.pop() {
@@ -178,15 +186,8 @@ impl Parser {
         //   ┌────────────>─────────────┐
         // (empty)──>──(star_nfa)──>──(empty)
         //   └─────<──────┘
-
-        let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => r,
-            None => return Err(format!("Character *, position {0}: Missing preceding value", pos + 1)),
-        };
-        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
-
-        new_nfa.merge(star_nfa);
-
+        let mut new_nfa = self.new_single_quantifier_nfa(pos)?;
+        
         new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
         new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
         new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
@@ -204,14 +205,7 @@ impl Parser {
         // (empty)──>──(star_nfa)──>──(empty)
         //   └─────<──────┘
         // so, very similar to handle_star
-
-        let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => r, 
-            None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
-        };
-        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
-
-        new_nfa.merge(star_nfa);
+        let mut new_nfa = self.new_single_quantifier_nfa(pos)?;
 
         new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
         new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
@@ -231,13 +225,7 @@ impl Parser {
         //   ┌────────────>─────────────┐
         // (empty)──>──(star_nfa)──>──(empty)
         // So, very similar to handle_star also.
-        let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => r,
-            None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
-        };
-        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
-
-        new_nfa.merge(star_nfa);
+        let mut new_nfa = self.new_single_quantifier_nfa(pos)?;
 
         // difference to star: this line
         // new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
@@ -246,6 +234,24 @@ impl Parser {
 
         self.nfa_stack.push(new_nfa);
         Ok(())
+    }
+
+    /// Constructs a NFA for single quantifiers to use.
+    ///
+    /// * `pos`: the string index.
+    fn new_single_quantifier_nfa(&mut self, pos: usize) -> Result<Nfa, String> {
+        let last_nfa = match self.nfa_stack.pop() {
+            Some(r) => r,
+            None => {
+                return Err(format!(
+                    "Character +, position {0}: Missing preceding value",
+                    pos + 1
+                ))
+            }
+        };
+        let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
+        new_nfa.merge(last_nfa);
+        Ok(new_nfa)
     }
 }
 

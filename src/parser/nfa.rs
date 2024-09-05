@@ -61,11 +61,10 @@ impl Nfa {
     }
 
     pub(crate) fn next_edge(next: &TokenType) -> TokenType {
-            match next {
-                TokenType::Hat | TokenType::Dollar => TokenType::Empty,
-                _ => next.clone(),
-            }
-        
+        match next {
+            TokenType::Hat | TokenType::Dollar => TokenType::Empty,
+            _ => next.clone(),
+        }
     }
 
     /// A more graceful way of accessing the NFA's state.
