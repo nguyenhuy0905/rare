@@ -1,6 +1,6 @@
 #![warn(clippy::all)]
-pub mod parser;
-pub mod regex;
+pub mod rare;
 
+mod parser;
 mod lexer;
 mod postfix_converter;

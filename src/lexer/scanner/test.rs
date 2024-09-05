@@ -4,7 +4,7 @@ use super::*;
 fn simple_scan_test() {
     // println!("{}", TokenType::Character('c').discriminant());
     let mut test_scanner = Scanner::new("(abc)\\..*");
-    test_scanner.scan();
+    test_scanner.scan().unwrap();
     // I can test private methods?
     let res_vec: &Vec<Token> = &test_scanner.token_list;
     let outputs: [TokenType; 12] = [

@@ -3,12 +3,7 @@ use std::{
     process::exit,
 };
 
-use parser::Parser;
-
-mod lexer;
-mod parser;
-mod postfix_converter;
-mod regex;
+use rare::rare::RARE;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -16,25 +11,17 @@ fn main() -> io::Result<()> {
         panic!("Expected 1 argument")
     }
 
-    let mut parser = match Parser::new(&args[1]) {
-        Ok(p) => p,
-        Err(msg) => {
-            eprintln!("Error: {msg}");
-            exit(1);
-        }
-    };
-
-    let regex = match parser.parse() {
+    let rare = match RARE::new(&args[1]) {
         Ok(r) => r,
         Err(msg) => {
-            println!("Error: {msg}");
+            println!("{msg}");
             exit(1);
         }
     };
 
     let stdin = io::stdin();
     while let Some(Ok(input)) = stdin.lock().lines().next() {
-        if let Some(match_substr) = regex.match_all_index(&input) {
+        if let Some(match_substr) = rare.match_all_index(&input) {
             let mut prev_last_idx = 0;
             for substr_range in &match_substr {
                 print!(

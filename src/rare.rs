@@ -2,19 +2,30 @@ use std::collections::LinkedList;
 
 use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
+use crate::parser::Parser;
 
 /// An encapsulated object over the parse result of the `Parser`, and obtained by calling
 /// `Parser::parse`.
-pub struct Regex {
+///
+/// Also the name of the project.
+pub struct RARE {
     pub(crate) nfa: Nfa,
 }
 
-impl Regex {
+impl RARE {
     /// Constructs a `Regex` from a NFA. Should only be called by the `Parser`
     ///
     /// * `nfa`:
     pub(crate) fn from_nfa(nfa: Nfa) -> Self {
         Self { nfa }
+    }
+
+    /// Creates a new regex object.
+    ///
+    /// * `regex`: 
+    pub fn new(regex: &str) -> Result<Self, String> {
+        let mut parser = Parser::new(regex)?;
+        parser.parse()
     }
 
     /// Returns the first matching substring.

@@ -4,7 +4,7 @@ use crate::postfix_converter::*;
 #[test]
 fn simple_postfix_test() {
     let mut test_scanner = Scanner::new("ab*|bc*");
-    test_scanner.scan();
+    test_scanner.scan().unwrap();
     test_scanner.print_tokens();
     println!();
 
@@ -16,7 +16,7 @@ fn simple_postfix_test() {
 #[test]
 fn simple_postfix_test_2() {
     let mut test_scanner = Scanner::new("\\.c(c|h)");
-    test_scanner.scan();
+    test_scanner.scan().unwrap();
     test_scanner.print_tokens();
     println!();
 
@@ -28,7 +28,7 @@ fn simple_postfix_test_2() {
 #[test]
 fn complex_postfix_test() {
     let mut test_scanner = Scanner::new("z(abc?|c)+\\.?.*");
-    test_scanner.scan();
+    test_scanner.scan().unwrap();
 
     let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
     let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");

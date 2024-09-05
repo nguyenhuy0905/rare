@@ -1,6 +1,6 @@
 use crate::{
     lexer::token_type::Token,
-    regex::Regex,
+    rare::RARE,
 };
 
 pub(crate) mod nfa;
@@ -59,7 +59,7 @@ impl Parser {
     /// that, `Regex::is_match` can be called.
     ///
     /// * Return: the parsed `Regex` object.
-    pub fn parse(&mut self) -> Result<Regex, String> {
+    pub fn parse(&mut self) -> Result<RARE, String> {
         while let Some(tok) = self.postfix_stack.pop() {
             if tok.token_type.is_symbol() {
                 self.handle_symbol(tok)?
@@ -73,9 +73,9 @@ impl Parser {
         // a case where there isn't another NFA down there: empty regular expression "".
         if let Some(mut ret) = self.nfa_stack.pop() {
             ret.merge(last_state);
-            return Ok(Regex::from_nfa(ret));
+            return Ok(RARE::from_nfa(ret));
         }
-        Ok(Regex::from_nfa(last_state))
+        Ok(RARE::from_nfa(last_state))
     }
 
     /// Handles the symbol passed in. This assumes that the input passed in is a symbol.
