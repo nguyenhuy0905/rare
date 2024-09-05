@@ -179,15 +179,7 @@ impl Parser {
         //   └─────<──────┘
 
         let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => {
-                if r.states.len() == 1 {
-                    let last_state = r.states.last().unwrap();
-                    if last_state.token.token_type == TokenType::Empty {
-                        return Err(format!("Character *, position {0}: Missing preceding value", pos + 1))
-                    }
-                }
-                r
-            }
+            Some(r) => r,
             None => return Err(format!("Character *, position {0}: Missing preceding value", pos + 1)),
         };
         let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
@@ -213,15 +205,7 @@ impl Parser {
         // so, very similar to handle_star
 
         let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => {
-                if r.states.len() == 1 {
-                    let last_state = r.states.last().unwrap();
-                    if last_state.token.token_type == TokenType::Empty {
-                        return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
-                    }
-                }
-                r
-            }
+            Some(r) => r, 
             None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
         };
         let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
@@ -247,15 +231,7 @@ impl Parser {
         // (empty)──>──(star_nfa)──>──(empty)
         // So, very similar to handle_star also.
         let star_nfa = match self.nfa_stack.pop() {
-            Some(r) => {
-                if r.states.len() == 1 {
-                    let last_state = r.states.last().unwrap();
-                    if last_state.token.token_type == TokenType::Empty {
-                        return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
-                    }
-                }
-                r
-            }
+            Some(r) => r,
             None => return Err(format!("Character +, position {0}: Missing preceding value", pos + 1)),
         };
         let mut new_nfa = Nfa::new(Token::new(0, TokenType::Empty));
