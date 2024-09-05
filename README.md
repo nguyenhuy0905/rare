@@ -118,6 +118,9 @@ runs faster.
 ![I did it boys](https://github.com/user-attachments/assets/1a2e2d4b-517f-4d56-91a3-03f557966ddf)
 ![And AGAIN!!!](https://github.com/user-attachments/assets/6ce017b6-2b04-4dc9-a8aa-3b4f8422f56f)
 
+- Well, if you put the program through actual work though, it is absolutely
+crushed by `grep`. I tried to match '.\*\(Sema)+' from `clang`'s codebase,
+and it took grep about 10s, and this program about, well, 8 minutes.
 
 ### Performance consideration: linked list vs vector
 
