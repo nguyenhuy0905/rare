@@ -58,7 +58,7 @@ impl Parser {
     /// * Return: the parsed `Regex` object.
     pub fn parse(&mut self) -> Result<Regex, String> {
         while let Some(tok) = self.postfix_stack.pop() {
-            if tok.token.is_symbol() {
+            if tok.token_type.is_symbol() {
                 self.handle_symbol(tok)?
             } else {
                 self.nfa_stack.push(Nfa::new(tok));
@@ -79,9 +79,9 @@ impl Parser {
     ///
     /// * `input`: the symbol passed in.
     fn handle_symbol(&mut self, input: Token) -> Result<(), String> {
-        debug_assert!(input.token.is_symbol());
+        debug_assert!(input.token_type.is_symbol());
 
-        match input.token {
+        match input.token_type {
             TokenType::Concat => self.handle_concat(input.pos),
             TokenType::Beam => self.handle_beam(input.pos),
             TokenType::Star => self.handle_star(input.pos),
@@ -182,7 +182,7 @@ impl Parser {
             Some(r) => {
                 if r.states.len() == 1 {
                     let last_state = r.states.last().unwrap();
-                    if last_state.token.token == TokenType::Empty {
+                    if last_state.token.token_type == TokenType::Empty {
                         return Err(format!("Character *, position {0}: Missing preceding value", pos + 1))
                     }
                 }
@@ -216,7 +216,7 @@ impl Parser {
             Some(r) => {
                 if r.states.len() == 1 {
                     let last_state = r.states.last().unwrap();
-                    if last_state.token.token == TokenType::Empty {
+                    if last_state.token.token_type == TokenType::Empty {
                         return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
                     }
                 }
@@ -250,7 +250,7 @@ impl Parser {
             Some(r) => {
                 if r.states.len() == 1 {
                     let last_state = r.states.last().unwrap();
-                    if last_state.token.token == TokenType::Empty {
+                    if last_state.token.token_type == TokenType::Empty {
                         return Err(format!("Character +, position {0}: Missing preceding value", pos + 1))
                     }
                 }

@@ -25,7 +25,7 @@ fn simple_scan_test() {
     let mut idx = 0;
 
     while idx < res_vec.len() {
-        assert_eq!(res_vec[idx].token, outputs[idx]);
+        assert_eq!(res_vec[idx].token_type, outputs[idx]);
         idx += 1;
     }
 

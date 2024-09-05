@@ -101,7 +101,7 @@ impl<'a> Scanner<'a> {
     /// Prints the entire token list of this scanner. Only useful for debugging.
     pub fn print_tokens(&self) {
         for tok in self.token_list.iter() {
-            println!("{}", tok.token);
+            println!("{}", tok.token_type);
         }
     }
 }

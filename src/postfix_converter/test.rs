@@ -59,7 +59,7 @@ fn complex_postfix_test() {
             .postfix_token_list
             .iter()
             .zip(test_vec.iter())
-            .filter(|pair| pair.0.token == *pair.1)
+            .filter(|pair| pair.0.token_type == *pair.1)
             .count()
             == test_vec.len()
     )

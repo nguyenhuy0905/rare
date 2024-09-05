@@ -74,6 +74,13 @@ And here is an example using the CLI:
 
 ## Misc
 
+### Performance consideration: how does it compare against grep?
+
+- For short regex and kind-of short string like this, it is about as fast.
+- However, `grep` has its dark magic, in which, for longer strings, it actually
+runs faster.
+- So, for long inputs, I don't expect this program to come any close to `grep`.
+
 ### Performance consideration: linked list vs vector
 
 - Note: this isn't really benchmarked so it's the author yappin'.
@@ -87,3 +94,7 @@ returned collection can be really long.
   - "But I need the random access!!!"
   - Convert it into a linked list then. Even when considering the conversion, that
   may still be more efficient than resizing too many times.
+
+### What does it have over grep?
+
+- Nothing. Maybe it's written in Rust?

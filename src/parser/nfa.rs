@@ -52,7 +52,7 @@ impl Nfa {
             self.states
                 .get_mut(self.end)
                 .unwrap()
-                .add_edge(another.states.first().unwrap().token.token.clone(), l);
+                .add_edge(another.states.first().unwrap().token.token_type.clone(), l);
             self.states.append(&mut another.states);
         }
 
@@ -74,7 +74,7 @@ impl Nfa {
             if std::ptr::eq(state, self.states.last().unwrap()) {
                 print!("last ");
             }
-            println!("state (index {idx}): {}", state.token.token);
+            println!("state (index {idx}): {}", state.token.token_type);
             print!("\tedges: ");
             for edge in state.edges.iter() {
                 print!("{}, to index {}; ", edge.0, edge.1);

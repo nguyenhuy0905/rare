@@ -38,7 +38,7 @@ impl PostfixConverter {
     /// After this function, call get_postfix_vec to retrieve the postfix vector.
     pub fn convert(mut self) -> Result<PostfixConverter, String> {
         while let Some(tok) = self.infix_token_stack.pop() {
-            if !tok.token.is_symbol() {
+            if !tok.token_type.is_symbol() {
                 self.postfix_token_list.push(tok);
             } else if let Err(estr) = self.push_symbol(tok) {
                 return Err(estr);
@@ -46,7 +46,7 @@ impl PostfixConverter {
         }
 
         while let Some(tok) = self.symbol_stack.pop() {
-            if tok.token == TokenType::LParen {
+            if tok.token_type == TokenType::LParen {
                 return Err(format!("Character ( at {0}: extra (", tok.pos + 1));
             }
             self.postfix_token_list.push(tok);
@@ -69,7 +69,7 @@ impl PostfixConverter {
     /// Prints the current postfix stack. Only useful when debugging.
     pub fn print_postfix_stack(&self) {
         for tok in self.postfix_token_list.iter() {
-            println!("{}", tok.token);
+            println!("{}", tok.token_type);
         }
     }
 
@@ -90,13 +90,13 @@ impl PostfixConverter {
         // list. Then, that left parentheses is also removed from the stack.
         // All the other tokens work as described in `TokenType::precedence`. Following this logic,
         // characters and quantifiers get pushed straight to the postfix token list.
-        match tok.token {
+        match tok.token_type {
             TokenType::LParen => {
                 self.symbol_stack.push(tok);
             }
             TokenType::RParen => {
                 while let Some(pop_tok) = self.symbol_stack.pop() {
-                    if pop_tok.token == TokenType::LParen {
+                    if pop_tok.token_type == TokenType::LParen {
                         return Ok(());
                     }
                     self.postfix_token_list.push(pop_tok);
@@ -104,14 +104,14 @@ impl PostfixConverter {
                 return Err(format!("Character ) at {0}: missing a (", tok.pos + 1));
             }
             TokenType::Concat => match self.symbol_stack.last() {
-                Some(Token{token: TokenType::Concat, ..}) => {
+                Some(Token{token_type: TokenType::Concat, ..}) => {
                     // position doesn't really matter for this token.
                     self.postfix_token_list.push(Token::new(tok.pos, TokenType::Concat));
                 }
                 None | Some(_) => self.symbol_stack.push(tok),
             },
             TokenType::Beam => match self.symbol_stack.last() {
-                None | Some(Token{token: TokenType::LParen, ..}) => {
+                None | Some(Token{token_type: TokenType::LParen, ..}) => {
                     self.symbol_stack.push(tok);
                 }
                 Some(_) => {

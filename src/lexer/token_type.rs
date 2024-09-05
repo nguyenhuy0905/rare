@@ -25,12 +25,12 @@ pub enum TokenType {
 
 pub(crate) struct Token {
     pub pos: usize,
-    pub token: TokenType,
+    pub token_type: TokenType,
 }
 
 impl Token {
     pub fn new(pos: usize, token: TokenType) -> Self {
-        Self { pos, token }
+        Self { pos, token_type: token }
     }
 }
 
