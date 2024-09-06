@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::collections::{BTreeSet, HashSet};
+use std::collections::{BTreeSet, HashSet, LinkedList};
 
 use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
@@ -71,8 +71,8 @@ impl RARE {
         false
     }
 
-    pub fn match_all(&self, regex: &str) -> Option<Vec<(usize, usize)>> {
-        let mut ret_vec = Vec::new();
+    pub fn match_all(&self, regex: &str) -> Option<LinkedList<(usize, usize)>> {
+        let mut ret_vec = LinkedList::new();
         let mut curr_str_ptr = 0;
 
         let mut str_data = StringIterData {
@@ -102,7 +102,7 @@ impl RARE {
                 if self.step_once(&mut curr_state_data, &str_data) {
                     // otherwise, the next character may automatically match, even if it shouldn't
                     curr_state_data.curr_states.remove(&self.nfa.end);
-                    ret_vec.push((curr_str_ptr, str_data.curr_pos));
+                    ret_vec.push_back((curr_str_ptr, str_data.curr_pos));
                     curr_str_ptr = str_data.curr_pos;
                 }
                 str_data.curr_pos += 1;

@@ -149,7 +149,7 @@ impl PostfixConverter {
                     self.postfix_token_list.push(
                         self.symbol_stack
                             .pop()
-                            .expect("Trust me this can never go wrong"),
+                            .unwrap(),
                     );
                     self.symbol_stack.push(tok);
                 }
