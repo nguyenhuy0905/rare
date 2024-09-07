@@ -149,6 +149,7 @@ describe what I mean by this.
 ### Performance consideration: how does it compare against grep?
 
 - `grep` has its dark magic, in which, for longer strings, it actually runs faster.
+- For not-many-branches patterns, both runs about as fast.
 - Well, excuses aside, about 60% the speed of `grep`. Sad. But I mean, it's still
 pretty good.
 
