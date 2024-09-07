@@ -22,11 +22,11 @@ token list.
 is a Shunting Yard machine to convert the infix list into a postfix one.
   - Postfix list is simpler to parse because the parser only needs to worry
   about at most 2 states at a time.
-- After that, the postfix list is passed to the parser, who converts the list
+- After that, the postfix list is passed to the parser, who compiles the list
 into a nondeterministic finite automaton (NFA).
-  - The parser doesn't generate optimal NFAs though. The NFAs generated all
-  have one single start state, and one single end state. This makes them very
-  composable, but also generates quite a lot of empty states.
+  - The parser doesn't generate optimal NFAs though. The NFAs fragments generated
+  during compilation all have one single start state, and one single end state.
+  This makes them very composable, but also generates quite a lot of empty states.
 - Finally, given a string, the regex program traverses the resultant NFA.
 If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
@@ -115,14 +115,21 @@ And here is an example using the CLI:
 ## TODO
 
 - Tidy up the code base. (Halfway there).
-- Write usage docum
+- Write usage document.
 - ~~Write a professional-looking blog post about this project~~.
 - Develop some more notations:
+  - For these next notations, I need to change quite a lot of code. All the other
+  quantifiers (star, plus, question mark) are only single-character. These are
+  multiple characters.
   - Range match (\[a-z\]). Basically dot but more limited.
+  - Or boolean, syntax-sugar version (\[abcdef...\]). I can actually do an
+  optimization for this one, rather than the existing Or: one start and one end,
+  and a bunch of in-between states connecting those two together.
   - Limiter ({a,b}). Copy-and-pasting the NFA right before it, a times. Then add
   (b - a) beams (OR). Each of these either go empty or go to the copy-pasted NFA.
     - I wouldn't deal with the syntax sugar of {a,} or {,b}. At least, until I got
     everything working.
+    - Again, I can do an optimization over the normal Or boolean.
 
 - UTF-8?
   - Not until I have everything above finished.
@@ -142,20 +149,23 @@ describe what I mean by this.
 ### Performance consideration: how does it compare against grep?
 
 - `grep` has its dark magic, in which, for longer strings, it actually runs faster.
+- Well, excuses aside, about 60% the speed of `grep`. Sad. But I mean, it's still
+pretty good.
 
 ### Performance consideration: linked list vs vector
 
-- Note: this isn't really benchmarked so it's the author yappin'.
 - This program uses a LOT of stacks for parsing a regular expression. However,
 it is assumed that almost every regular expression passed in is short. Given
 that, the Big-O gain of a linked list for stack operations isn't really worth
 it, especially when considering its tradeoff in cache locality.
 - The only collection returned that uses a linked list is that of `match_all`,
 since, if given a long string and a short regex (worst case, ".\*"), the
-returned collection can be really long.
+returned collection can be really long. But to be fair, this is micro-optimisation.
   - "But I need the random access!!!"
   - Convert it into a linked list then. Even when considering the conversion, that
   may still be more efficient than resizing too many times.
+    - Correction: nevermind, I may make 2 different versions, one returning a linked
+    list and one returning a vector.
 
 ### What does it have over grep?
 
