@@ -35,8 +35,8 @@ regular expression. So, kinda like (a crippled version of) `grep`.
 - The worst-case time complexity should be $O(mn)$.
   - In prior versions, it was actually $O(2^n)$. I benchmarked it by matching
   a pattern in the `clang`'s source code. It used to take 8 minutes. The version
-  before 1.2.0 takes nearly 8 minutes to match. The newer ones take about 7 seconds.
-    - Well, `grep` only takes 4 though. I mean, am I supposed to compete with `grep`?
+  before 1.2.0 takes nearly 8 minutes to match. The newer ones take about 17 seconds.
+    - Well, `grep` only takes 9 though. I mean, am I supposed to compete with `grep`?
 
 ## What does it support currently?
 
