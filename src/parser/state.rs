@@ -29,19 +29,4 @@ impl State {
     pub fn add_edge(&mut self, input: TokenType, index: usize) {
         self.edges.push((input, index))
     }
-
-    /// Given the input, return the next indices.
-    ///
-    /// note, this function may not be used in the future, as there will be more complicated
-    /// conditions than just matching one type of input.
-    ///
-    /// * `input`: 
-    pub fn get_next_indices<P: Fn(&&(TokenType, usize)) -> bool>(&self, pred: P) -> Vec<usize> {
-        self.edges
-            .iter()
-            .filter(pred)
-            .map(|edge| edge.1)
-            .collect()
-    }
 }
-
