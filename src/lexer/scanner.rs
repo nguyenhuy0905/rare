@@ -126,6 +126,9 @@ impl<'a> Scanner<'a> {
 
     /// Handles pushing hat (^) token onto the stack.
     ///
+    /// This is the easiest place to catch any error related to this anchor. For the dollar anchor,
+    /// it's easier to catch errors during the postfix conversion phase.
+    ///
     /// * `idx`:
     fn handle_push_hat(&mut self, idx: usize) -> Result<(), String> {
         match self.token_list.last() {
@@ -146,6 +149,9 @@ impl<'a> Scanner<'a> {
 
     /// Handles pushing star (*), plus (+) and question mark (?) onto the stack.
     /// These are single-character symbols, hence the name.
+    ///
+    /// This function checks whether these tokens are placed at the start of a statement, if yes,
+    /// complain, and if not, push them to the list.
     ///
     /// * `idx`: the string index
     /// * `token`: the token type
