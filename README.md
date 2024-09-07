@@ -8,6 +8,14 @@ language out there.
 
 ## What does it do?
 
+### TL;DR
+
+- This engine uses the finite automaton method to match regular expressions. A
+regular expression is compiled into a finite automaton, which is traversed when
+matching a string.
+
+### A little more words
+
 - First, the program scans the regex string passed in and parse it into a infix
 token list.
 - Then, the infix token list goes through a postfix converter, which basically
@@ -16,12 +24,19 @@ is a Shunting Yard machine to convert the infix list into a postfix one.
   about at most 2 states at a time.
 - After that, the postfix list is passed to the parser, who converts the list
 into a nondeterministic finite automaton (NFA).
+  - The parser doesn't generate optimal NFAs though. The NFAs generated all
+  have one single start state, and one single end state. This makes them very
+  composable, but also generates quite a lot of empty states.
 - Finally, given a string, the regex program traverses the resultant NFA.
 If it lands at the final state, the string matches. Otherwise, while the string
 isn't empty, it tries to match the same string, minus the first letter.
 - If you use the CLI, this program highlights all parts of line that match the
-regular expression.
-- The worst-case time complexity should be $O(mn)$
+regular expression. So, kinda like (a crippled version of) `grep`.
+- The worst-case time complexity should be $O(mn)$.
+  - In prior versions, it was actually $O(2^n)$. I benchmarked it by matching
+  a pattern in the `clang`'s source code. It used to take 8 minutes. The version
+  before 1.2.0 takes nearly 8 minutes to match. The newer ones take about 7 seconds.
+    - Well, `grep` only takes 4 though. I mean, am I supposed to compete with `grep`?
 
 ## What does it support currently?
 
@@ -36,7 +51,11 @@ regular expression.
 
 ## How to use
 
-- Here's a code example:
+- Here's a code example. This program reads from `stdin` and highlights the matching
+parts in red:
+  - Note, by "matching", I mean the longest strings that match the regex. You could
+  say "b\*" matches every single character in a string of "a"s. But, the length of
+  each match is, well, 0. So, it's not hightlighted in red.
 
 ```rust
 use std::{
@@ -61,21 +80,26 @@ fn main() -> io::Result<()> {
         }
     };
 
-    let stdin = io::stdin();
-    while let Some(Ok(input)) = stdin.lock().lines().next() {
-        if let Some(match_substr) = rare.match_all_index(&input) {
+    let in_handle = io::stdin().lock();
+    for buf_result in in_handle.lines() {
+        let buf = if let Ok(ret) = buf_result {
+            ret
+        } else {
+            continue;
+        };
+        if let Some(match_substr) = rare.match_all(&buf) {
             let mut prev_last_idx = 0;
-            for substr_range in &match_substr {
-                print!(
-                    "{0}\x1b[31m\x1b[1m{1}\x1b[0m",
-                    &input[prev_last_idx..substr_range.0],
-                    &input[substr_range.0..substr_range.1]
-                );
-                prev_last_idx = substr_range.1;
-                // println!("{0}, {1}", substr_range.0, substr_range.1);
+            for substr_range in match_substr.iter() {
+                if let Some(out) = 
+                    // a function I defined to help get the substring.
+                    get_substring(&buf, substr_range.0, substr_range.1) {
+                    print!("{}", &buf[prev_last_idx..substr_range.0]);
+                    print!("\x1b[31m{out}\x1b[0m");
+                    prev_last_idx = substr_range.1;
+                }
+                // println!("{}, {}", substr_range.0, substr_range.1);
             }
-            print!("{0}", &input[prev_last_idx..]);
-            println!();
+            println!("{}", &buf[prev_last_idx..]);
         }
     }
 
@@ -91,7 +115,7 @@ And here is an example using the CLI:
 ## TODO
 
 - Tidy up the code base. (Halfway there).
-- Write usage documentation.
+- Write usage docum
 - ~~Write a professional-looking blog post about this project~~.
 - Develop some more notations:
   - Range match (\[a-z\]). Basically dot but more limited.
@@ -107,20 +131,17 @@ And here is an example using the CLI:
 
 ## Misc
 
+### History: this used to run in exponential time
+
+- I think it used to run in $O(2^n)$ time complexity. This version is about
+$O(mn)$ ($m$: length of string, $n$: length of regex).
+
+- I am thinking of documenting the development process, which will better
+describe what I mean by this.
+
 ### Performance consideration: how does it compare against grep?
 
-- For short regex and kind-of short string like this, it is about as fast.
-- However, `grep` has its dark magic, in which, for longer strings, it actually
-runs faster.
-- So, for long inputs, I don't expect this program to come any close to `grep`.
-- These are some moments when it actually beats out grep:
-
-![I did it boys](https://github.com/user-attachments/assets/1a2e2d4b-517f-4d56-91a3-03f557966ddf)
-![And AGAIN!!!](https://github.com/user-attachments/assets/6ce017b6-2b04-4dc9-a8aa-3b4f8422f56f)
-
-- Well, if you put the program through actual work though, it is absolutely
-crushed by `grep`. I tried to match '.\*\(Sema)+' from `clang`'s codebase,
-and it took grep about 10s, and this program about, well, 8 minutes.
+- `grep` has its dark magic, in which, for longer strings, it actually runs faster.
 
 ### Performance consideration: linked list vs vector
 
