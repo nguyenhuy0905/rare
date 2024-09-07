@@ -8,8 +8,8 @@ fn simple_postfix_test() {
     test_scanner.print_tokens();
     println!();
 
-    let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
-    let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");
+    let mut test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
+    test_pfix_conv.convert().expect("It didn't work");
     test_pfix_conv.print_postfix_stack();
 }
 
@@ -20,8 +20,8 @@ fn simple_postfix_test_2() {
     test_scanner.print_tokens();
     println!();
 
-    let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
-    let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");
+    let mut test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
+    test_pfix_conv.convert().expect("It didn't work");
     test_pfix_conv.print_postfix_stack();
 }
 
@@ -30,8 +30,8 @@ fn complex_postfix_test() {
     let mut test_scanner = Scanner::new("z(abc?|c)+\\.?.*");
     test_scanner.scan().unwrap();
 
-    let test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
-    let test_pfix_conv = test_pfix_conv.convert().expect("It didn't work");
+    let mut test_pfix_conv = PostfixConverter::from_scanner(test_scanner);
+    test_pfix_conv.convert().expect("It didn't work");
     test_pfix_conv.print_postfix_stack();
 
     let test_vec: Vec<TokenType> = vec![

@@ -39,7 +39,7 @@ impl PostfixConverter {
     /// Converts the stored infix token list into a postfix one.
     ///
     /// After this function, call get_postfix_vec to retrieve the postfix vector.
-    pub fn convert(mut self) -> Result<PostfixConverter, String> {
+    pub fn convert(&mut self) -> Result<(), String> {
         while let Some(tok) = self.infix_token_stack.pop() {
             if !tok.token_type.is_symbol() {
                 self.push_non_symbol(tok)?;
@@ -56,7 +56,7 @@ impl PostfixConverter {
         }
 
         self.done = true;
-        Ok(self)
+        Ok(())
     }
 
     /// Returns the postfix vector stored inside this converter.

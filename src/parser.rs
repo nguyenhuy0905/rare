@@ -40,9 +40,9 @@ impl Parser {
             let mut scanner = Scanner::new(regex);
             scanner.scan()?;
             // i should redesign the convert method.
-            let conv = PostfixConverter::from_scanner(scanner);
+            let mut conv = PostfixConverter::from_scanner(scanner);
             match conv.convert() {
-                Ok(conv) => conv.move_postfix_vec(),
+                Ok(()) => conv.move_postfix_vec(),
                 Err(msg) => return Err(msg),
             }
         };
