@@ -2,6 +2,7 @@
 
 > [!NOTE]
 > This project isn't meant to be used in production. It's the author's "learning".
+> In other words, it's a toy regex engine.
 
 - An overengineered regular expression matcher, written in the 2nd best low level
 language out there.
