@@ -146,6 +146,18 @@ $O(mn)$ ($m$: length of string, $n$: length of regex).
 - I am thinking of documenting the development process, which will better
 describe what I mean by this.
 
+### History: the pretty-printer highlight is now removed
+
+- For a lot of situations where you're constantly hitting the worst case, and for
+situations the string matches right away from the start, the pretty-printer tanks
+the performance by a lot, since after the first match, it still has to traverse all
+the characters in the string, and each one of those hit the worst case, aka, for
+one character, that's $O(m)$ where $m$ is the regex length. This is especially true
+for regex with ".\*" inside.
+
+- It's not actually removed though. If you want that feature, comment out the
+`is_match` part in `main()` and uncomment one of the pretty-printers.
+
 ### Performance consideration: how does it compare against grep?
 
 - `grep` has its dark magic, in which, for longer strings, it actually runs faster.
@@ -167,6 +179,22 @@ returned collection can be really long. But to be fair, this is micro-optimisati
   may still be more efficient than resizing too many times.
     - Correction: nevermind, I may make 2 different versions, one returning a linked
     list and one returning a vector.
+
+### Performance: a simple compiling optimization
+
+- In the prior versions, sometimes, the NFA has parts where an empty state points
+only to another empty state. That's pretty inefficient, since the matcher now has
+to keep track of that extra empty state.
+
+- The simple optimization is, when merging 2 NFAs together, if both the end of the
+first NFA and the start of the second is an empty state, move all the connections
+of the second's start state to the end of the first, and remove the second's start.
+
+- In cases where this situation isn't present, the compile time increases slightly,
+and the runtime stays the same (or, a little longer due to the longer compile
+time). However, in cases with lots of branching (so, where there are quite some
+"?", "\*" or "+"), this can cut runtime quite significantly. My benchmark shows some
+cases where the runtime decreases by 20%!
 
 ### What does it have over grep?
 
