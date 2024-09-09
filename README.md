@@ -166,6 +166,10 @@ for regex with ".\*" inside.
 - Well, excuses aside, about 60% the speed of `grep`. Sad. But I mean, it's still
 pretty good.
 
+### Performance consideration: how does it compare against rg?
+
+- Same story with `grep`.
+
 ### Performance consideration: linked list vs vector
 
 - This program uses a LOT of stacks for parsing a regular expression. However,
