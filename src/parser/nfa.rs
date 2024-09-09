@@ -15,6 +15,7 @@ pub(crate) struct Nfa {
 }
 
 impl Nfa {
+    #[inline]
     /// Constructs a new NFA.
     /// A new NFA should always has 1 state inside.
     ///
@@ -26,6 +27,7 @@ impl Nfa {
         }
     }
 
+    #[inline]
     /// Adds the specified state to the NFA.
     /// IMPORTANT: `Nfa::end` is assumed to be the last element in the NFA.
     ///
@@ -40,21 +42,10 @@ impl Nfa {
     ///
     /// * `another`:
     pub fn merge(&mut self, mut another: Nfa) {
-        // for state in another.states.iter_mut() {
-        //     for edge in state.edges.iter_mut() {
-        //         edge.1 += self.states.len();
-        //     }
-        // }
+        // skips?
         //
-        // {
-        //     // damn you borrow checker
-        //     let l = self.states.len();
-        //     self.states
-        //         .get_mut(self.end)
-        //         .unwrap()
-        //         .add_edge(another.states.first().unwrap().token.token_type.clone(), l);
-        //     self.states.append(&mut another.states);
-        // }
+        // It's for a small optimization. When the start of `another` and the end of `self` are
+        // both `TokenType::Empty`, this function simulates fusing those 2 states into one.
 
         let skips = {
             let self_end_type = &self.states[self.end].token.token_type;
@@ -81,7 +72,7 @@ impl Nfa {
                 *edge += self_old_len;
             }
         }
-
+        // skips == 1 already "connects" the start and end together.
         if skips == 0 {
             self.states[self.end]
                 .add_edge(self_old_len);
@@ -91,6 +82,8 @@ impl Nfa {
         self.end = self.states.len() - 1;
     }
 
+
+    #[inline]
     /// A more graceful way of accessing the NFA's state.
     /// But the author may be too lazy to use this function :(.
     ///

@@ -13,6 +13,7 @@ pub(crate) struct State {
 }
 
 impl State {
+    #[inline]
     /// Constructs a new state with the specified token.
     ///
     /// * `token`: the specified token.
@@ -22,6 +23,7 @@ impl State {
             edges: Vec::new(), }
     }
 
+    #[inline]
     /// Adds an edge to this state.
     ///
     /// * `input`: 

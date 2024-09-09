@@ -229,6 +229,7 @@ impl RARE {
 
     }
 
+    #[inline]
     /// Given the list of states and the string input, move the list of current states by one step.
     /// Returns whether the next step indicates a match.
     ///
@@ -242,8 +243,11 @@ impl RARE {
         // }
         // println!("]");
 
-        // order matters here. The resultant NFA always have the last state being the end state, so
+        // Order matters here. The resultant NFA always have the last state being the end state, so
         // to match the longest string possible, I should go from the state with smaller reference.
+        //
+        // But, to be fair, this is relevant only for the pretty-printer, so if I don't want the
+        // pretty printer, I can use a simple HashSet instead.
         while let Some(curr_ref) = state_data.curr_states.pop_first() {
             if curr_ref == self.nfa.end {
                 // ref_data.next_states.remove(&self.nfa.end);
@@ -261,6 +265,7 @@ impl RARE {
         state_data.curr_states.contains(&self.nfa.end)
     }
 
+    #[inline]
     /// Gets the next state(s) given the current state and the input.
     ///
     /// * `state_ref`: the current state.
