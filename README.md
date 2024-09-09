@@ -1,7 +1,7 @@
 # Rust awkward regex engine (RARE)
 
 > [!NOTE]
-> Work in progress.
+> This project isn't meant to be used in production. It's the author's "learning".
 
 - An overengineered regular expression matcher, written in the 2nd best low level
 language out there.
