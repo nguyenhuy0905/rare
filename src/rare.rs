@@ -5,6 +5,8 @@ use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
 use crate::parser::Parser;
 
+// use rustc_hash::FxHashSet;
+
 /// An encapsulated object over the parse result of the `Parser`. Obtained by calling the method
 /// `RARE::new`
 ///
@@ -27,18 +29,19 @@ pub struct RARE {
 /// * `curr_states`:
 /// * `next_states`:
 struct CurrStatesData {
-    // the results between BTreeSet and HashSet is benchmarked by me. It's somewhat surprising that
+    // the results between BTreeSet and HashSet is benchmarked by. It's somewhat surprising that
     // BTreeSet runs faster than HashSet.
     // The current theory I have is, if I use a HashSet, I need to drain the set and collect using
     // a newly allocated vector before adding elements again; otherwise, the borrow checker isn't
     // happy with me. For a BTreeSet though, since the elements are always in a specific order, I
     // can pop an element off and insert a new one without much trouble.
-    
     curr_states: BTreeSet<usize>,
     // a temporary list that gets swapped with curr_states after curr_states is emptied.
     next_states: BTreeSet<usize>,
+    all_empty_match: bool,
 }
 
+// #[derive(Clone)]
 /// Holds information about the current string matched. The entire point of this struct is to
 /// remove any possibly modifiable members out of `RARE`, making any `RARE` instance thread-safe,
 /// at the cost of some memory to hold each of this object.
@@ -85,6 +88,7 @@ impl RARE {
                 ret
             },
             next_states: BTreeSet::new(),
+            all_empty_match: true,
         };
 
         while str_data.curr_pos < str_data.strlen + 1 {
@@ -122,11 +126,13 @@ impl RARE {
                 ret
             },
             next_states: BTreeSet::new(),
+            all_empty_match: true,
         };
 
+        let mut iter = string.chars();
         while curr_str_ptr < string.len() {
             str_data.curr_pos = curr_str_ptr;
-            str_data.curr_char = string.chars().nth(curr_str_ptr);
+            str_data.curr_char = iter.next();
 
             // Why do we accept the case it's equal to strlen (aka, 1 over the last valid string
             // index)?
@@ -137,7 +143,10 @@ impl RARE {
             // the anchor; hence it needs to run once more. And of course, this last run only
             // yields a match if there's a path from the list of current states to the end state,
             // such that all other states on it are empty or anchors.
-            
+            //
+            // This has consequences though, if it's not yet the end of the string, we overflowed
+            // one character. That's dealt with when there's a match.
+
             // if we don't find any match for the substring from curr_str_ptr, increment
             // curr_str_ptr.
             let mut incre = 1;
@@ -146,9 +155,15 @@ impl RARE {
                     curr_str_ptr = str_data.curr_pos;
                     curr_state_data.curr_states.insert(0);
                 }
+                // there's a match.
                 if self.step_once(&mut curr_state_data, &str_data) {
-                    // otherwise, the next character may automatically match, even if it shouldn't
-                    curr_state_data.curr_states.remove(&self.nfa.end);
+                    // if the match just run only matches empty states, the character increment
+                    // below this if statement is invalid - after all, the matcher didn't
+                    // match any character. Without this, and all_empty_match is true, the next
+                    // character automatically matches if some other paths already reach the end.
+                    if curr_state_data.all_empty_match {
+                        curr_state_data.curr_states.remove(&(self.nfa.end));
+                    }
                     ret_vec.push_back((curr_str_ptr, str_data.curr_pos));
                     curr_str_ptr = str_data.curr_pos;
                     incre = 0;
@@ -156,7 +171,6 @@ impl RARE {
                 str_data.curr_pos += 1;
                 str_data.curr_char = string.chars().nth(str_data.curr_pos);
             }
-
             curr_str_ptr += incre;
         }
 
@@ -165,6 +179,54 @@ impl RARE {
         } else {
             Some(ret_vec)
         }
+    }
+
+    pub fn write_match_all(&self, string: &str, ret_vec: &mut Vec<(usize, usize)>) {
+        // self.nfa.print_states();
+        let mut curr_str_ptr = 0;
+
+        let mut str_data = StringIterData {
+            strlen: string.len(),
+            curr_pos: 0,
+            curr_char: string.chars().nth(0),
+        };
+
+        let mut curr_state_data = CurrStatesData {
+            curr_states: {
+                let mut ret = BTreeSet::new();
+                ret.insert(0);
+                ret
+            },
+            next_states: BTreeSet::new(),
+            all_empty_match: true,
+        };
+
+        let mut iter = string.chars();
+        while curr_str_ptr < string.len() {
+            str_data.curr_pos = curr_str_ptr;
+            str_data.curr_char = iter.next();
+
+            let mut incre = 1;
+            while str_data.curr_pos <= str_data.strlen {
+                if curr_state_data.curr_states.is_empty() {
+                    curr_str_ptr = str_data.curr_pos;
+                    curr_state_data.curr_states.insert(0);
+                }
+                // there's a match.
+                if self.step_once(&mut curr_state_data, &str_data) {
+                    if curr_state_data.all_empty_match {
+                        curr_state_data.curr_states.remove(&(self.nfa.end));
+                    }
+                    ret_vec.push((curr_str_ptr, str_data.curr_pos));
+                    curr_str_ptr = str_data.curr_pos;
+                    incre = 0;
+                }
+                str_data.curr_pos += 1;
+                str_data.curr_char = string.chars().nth(str_data.curr_pos);
+            }
+            curr_str_ptr += incre;
+        }
+
     }
 
     /// Given the list of states and the string input, move the list of current states by one step.
@@ -180,15 +242,19 @@ impl RARE {
         // }
         // println!("]");
 
+        // order matters here. The resultant NFA always have the last state being the end state, so
+        // to match the longest string possible, I should go from the state with smaller reference.
         while let Some(curr_ref) = state_data.curr_states.pop_first() {
             if curr_ref == self.nfa.end {
                 // ref_data.next_states.remove(&self.nfa.end);
                 std::mem::swap(&mut state_data.curr_states, &mut state_data.next_states);
                 return true;
             }
-            state_data
-                .next_states
-                .extend(self.get_next_of(curr_ref, str_data));
+            state_data.next_states.extend({
+                let (ret, empty_match) = self.get_next_of(curr_ref, str_data);
+                state_data.all_empty_match = empty_match;
+                ret
+            });
         }
 
         std::mem::swap(&mut state_data.curr_states, &mut state_data.next_states);
@@ -199,8 +265,9 @@ impl RARE {
     ///
     /// * `state_ref`: the current state.
     /// * `str_data`: the input data.
-    fn get_next_of(&self, state_ref: usize, str_data: &StringIterData) -> HashSet<usize> {
+    fn get_next_of(&self, state_ref: usize, str_data: &StringIterData) -> (HashSet<usize>, bool) {
         let mut ret = HashSet::new();
+        let mut all_empty_match = true;
         // We want to skip empty transitions.
         // Hat (^) is the same as empty if the current position is the start of the string,
         // and dollar ($) is the same if the current position is the end of the string.
@@ -216,34 +283,37 @@ impl RARE {
         while let Some(skip_ref) = skip_set.pop_first() {
             if skip_ref == self.nfa.end {
                 ret.insert(skip_ref);
-                continue;
+                break;
             }
             let skip_state = self.nfa.get_state(skip_ref).unwrap();
 
-            for edge in skip_state.edges.iter() {
+            for next_ref in skip_state.edges.iter() {
+                let transition = &self.nfa.states[*next_ref].token.token_type;
                 // reminder; edge = (required match to transition, next state)
-                match edge.0 {
+                match transition {
                     TokenType::Character(c) => {
-                        if str_data.curr_char.is_some() && c == str_data.curr_char.unwrap() {
-                            ret.insert(edge.1);
+                        if str_data.curr_char.is_some() && *c == str_data.curr_char.unwrap() {
+                            ret.insert(*next_ref);
+                            all_empty_match = false;
                         }
                     }
                     TokenType::Dot => {
-                        ret.insert(edge.1);
+                        ret.insert(*next_ref);
+                        all_empty_match = false;
                     }
                     TokenType::Empty => {
-                        skip_set.insert(edge.1);
+                        skip_set.insert(*next_ref);
                     }
                     // hat and dollar anchors: if they are at the matching positions in the string,
                     // act as if they were empty states. Otherwise, they are not valid next states.
                     TokenType::Hat => {
                         if str_data.curr_pos == 0 {
-                            skip_set.insert(edge.1);
+                            skip_set.insert(*next_ref);
                         }
                     }
                     TokenType::Dollar => {
                         if str_data.curr_pos >= str_data.strlen - 1 {
-                            skip_set.insert(edge.1);
+                            skip_set.insert(*next_ref);
                         }
                     }
                     _ => todo!(),
@@ -251,7 +321,7 @@ impl RARE {
             }
         }
 
-        ret
+        (ret, all_empty_match)
     }
 }
 

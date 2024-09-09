@@ -1,5 +1,5 @@
 use super::state::State;
-use crate::lexer::token_type::Token;
+use crate::lexer::token_type::{Token, TokenType};
 
 /// Nondeterministic finite automaton (NFA). Basically the representation of the regular
 /// expression.
@@ -40,21 +40,53 @@ impl Nfa {
     ///
     /// * `another`:
     pub fn merge(&mut self, mut another: Nfa) {
-        for state in another.states.iter_mut() {
-            for edge in state.edges.iter_mut() {
-                edge.1 += self.states.len();
+        // for state in another.states.iter_mut() {
+        //     for edge in state.edges.iter_mut() {
+        //         edge.1 += self.states.len();
+        //     }
+        // }
+        //
+        // {
+        //     // damn you borrow checker
+        //     let l = self.states.len();
+        //     self.states
+        //         .get_mut(self.end)
+        //         .unwrap()
+        //         .add_edge(another.states.first().unwrap().token.token_type.clone(), l);
+        //     self.states.append(&mut another.states);
+        // }
+
+        let skips = {
+            let self_end_type = &self.states[self.end].token.token_type;
+            let another_start_type = &another.states[0].token.token_type;
+
+            if *self_end_type == TokenType::Empty && *another_start_type == TokenType::Empty {
+                1
+            } else {
+                0
+            }
+        };
+
+        let self_old_len = self.states.len() - skips;
+        if skips == 1 {
+            let self_end_state = &mut self.states[self.end];
+            for edge in another.states[0].edges.iter() {
+                // alternative to edge.0.clone() would be to remove the front state of another.
+                self_end_state.add_edge(edge + self_old_len);
             }
         }
 
-        {
-            // damn you borrow checker
-            let l = self.states.len();
-            self.states
-                .get_mut(self.end)
-                .unwrap()
-                .add_edge(another.states.first().unwrap().token.token_type.clone(), l);
-            self.states.append(&mut another.states);
+        for state in another.states.iter_mut() {
+            for edge in state.edges.iter_mut() {
+                *edge += self_old_len;
+            }
         }
+
+        if skips == 0 {
+            self.states[self.end]
+                .add_edge(self_old_len);
+        }
+        self.states.extend(another.states.into_iter().skip(skips));
 
         self.end = self.states.len() - 1;
     }
@@ -77,7 +109,7 @@ impl Nfa {
             println!("state (index {idx}): {}", state.token.token_type);
             print!("\tedges: ");
             for edge in state.edges.iter() {
-                print!("{}, to index {}; ", edge.0, edge.1);
+                print!("{}, to index {}; ", self.states[*edge].token.token_type, edge);
             }
             println!();
         }

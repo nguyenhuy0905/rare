@@ -62,7 +62,8 @@ impl TokenType {
             TokenType::Concat => 2,
             TokenType::QuestionMark | TokenType::Plus | TokenType::Star => 3,
             // non-symbols anyways.
-            _ => 4,
+            TokenType::Empty | TokenType::Hat | TokenType::Dollar => 4,
+            _ => 5,
         }
     }
 

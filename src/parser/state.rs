@@ -1,4 +1,4 @@
-use crate::lexer::token_type::{Token, TokenType};
+use crate::lexer::token_type::Token;
 
 /// Represents a state inside the NFA.
 ///
@@ -9,7 +9,7 @@ use crate::lexer::token_type::{Token, TokenType};
 pub(crate) struct State {
     pub token: Token,
     // at most, this is 2. so, maybe I can optimize this.
-    pub edges: Vec<(TokenType, usize)>,
+    pub edges: Vec<usize>,
 }
 
 impl State {
@@ -26,7 +26,7 @@ impl State {
     ///
     /// * `input`: 
     /// * `index`: 
-    pub fn add_edge(&mut self, input: TokenType, index: usize) {
-        self.edges.push((input, index))
+    pub fn add_edge(&mut self, index: usize) {
+        self.edges.push(index)
     }
 }

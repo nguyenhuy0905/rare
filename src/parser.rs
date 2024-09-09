@@ -1,7 +1,4 @@
-use crate::{
-    lexer::token_type::Token,
-    rare::RARE,
-};
+use crate::{lexer::token_type::Token, rare::RARE};
 
 pub(crate) mod nfa;
 pub(crate) mod state;
@@ -39,12 +36,9 @@ impl Parser {
         let mut pfix_stack = {
             let mut scanner = Scanner::new(regex);
             scanner.scan()?;
-            // i should redesign the convert method.
             let mut conv = PostfixConverter::from_scanner(scanner);
-            match conv.convert() {
-                Ok(()) => conv.move_postfix_vec(),
-                Err(msg) => return Err(msg),
-            }
+            conv.convert()?;
+            conv.move_postfix_vec()
         };
 
         pfix_stack.reverse();
@@ -164,12 +158,12 @@ impl Parser {
                 .states
                 .get_mut(first_end)
                 .unwrap()
-                .add_edge(TokenType::Empty, new_last_len);
+                .add_edge(new_last_len);
             push_nfa
                 .states
                 .last_mut()
                 .unwrap()
-                .add_edge(TokenType::Empty, new_last_len);
+                .add_edge(new_last_len);
             push_nfa.add_state(State::new(Token::new(0, TokenType::Empty)));
         }
 
@@ -187,10 +181,10 @@ impl Parser {
         // (empty)──>──(star_nfa)──>──(empty)
         //   └─────<──────┘
         let mut new_nfa = self.new_single_quantifier_nfa(pos)?;
-        
-        new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
+
+        new_nfa.states[new_nfa.end].add_edge(0);
         new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
-        new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
+        new_nfa.states[0].add_edge(new_nfa.end);
 
         self.nfa_stack.push(new_nfa);
         Ok(())
@@ -207,7 +201,7 @@ impl Parser {
         // so, very similar to handle_star
         let mut new_nfa = self.new_single_quantifier_nfa(pos)?;
 
-        new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
+        new_nfa.states[new_nfa.end].add_edge(0);
         new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
         // difference to star: this line
         // new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
@@ -230,7 +224,7 @@ impl Parser {
         // difference to star: this line
         // new_nfa.states[new_nfa.end].add_edge(TokenType::Empty, 0);
         new_nfa.merge(Nfa::new(Token::new(0, TokenType::Empty)));
-        new_nfa.states[0].add_edge(TokenType::Empty, new_nfa.end);
+        new_nfa.states[0].add_edge(new_nfa.end);
 
         self.nfa_stack.push(new_nfa);
         Ok(())
