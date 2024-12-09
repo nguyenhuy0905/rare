@@ -1,5 +1,5 @@
 use std::{
-    io::{self, BufRead, Write},
+    io::{self, BufRead},
     process::exit,
 };
 
