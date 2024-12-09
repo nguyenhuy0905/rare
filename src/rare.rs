@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::collections::{BTreeSet, HashSet, LinkedList};
+use std::collections::{BTreeSet, LinkedList};
 
 use crate::lexer::token_type::TokenType;
 use crate::parser::nfa::Nfa;
@@ -162,6 +162,8 @@ impl RARE {
                     // match any character. Without this, and all_empty_match is true, the next
                     // character automatically matches if some other paths already reach the end.
                     if curr_state_data.all_empty_match {
+                        // optimization: branchless here isn't a good idea. The comparison is still
+                        // cheaper than calling this function.
                         curr_state_data.curr_states.remove(&(self.nfa.end));
                     }
                     ret_vec.push_back((curr_str_ptr, str_data.curr_pos));
@@ -226,7 +228,6 @@ impl RARE {
             }
             curr_str_ptr += incre;
         }
-
     }
 
     #[inline]
@@ -254,11 +255,8 @@ impl RARE {
                 std::mem::swap(&mut state_data.curr_states, &mut state_data.next_states);
                 return true;
             }
-            state_data.next_states.extend({
-                let (ret, empty_match) = self.get_next_of(curr_ref, str_data);
-                state_data.all_empty_match = empty_match;
-                ret
-            });
+            state_data.all_empty_match =
+                self.get_next_of(curr_ref, str_data, &mut state_data.next_states);
         }
 
         std::mem::swap(&mut state_data.curr_states, &mut state_data.next_states);
@@ -270,8 +268,13 @@ impl RARE {
     ///
     /// * `state_ref`: the current state.
     /// * `str_data`: the input data.
-    fn get_next_of(&self, state_ref: usize, str_data: &StringIterData) -> (HashSet<usize>, bool) {
-        let mut ret = HashSet::new();
+    /// * `next_states`: the set of next states to be written into.
+    fn get_next_of(
+        &self,
+        state_ref: usize,
+        str_data: &StringIterData,
+        next_states: &mut BTreeSet<usize>,
+    ) -> bool {
         let mut all_empty_match = true;
         // We want to skip empty transitions.
         // Hat (^) is the same as empty if the current position is the start of the string,
@@ -287,23 +290,21 @@ impl RARE {
 
         while let Some(skip_ref) = skip_set.pop_first() {
             if skip_ref == self.nfa.end {
-                ret.insert(skip_ref);
+                next_states.insert(skip_ref);
                 break;
             }
             let skip_state = self.nfa.get_state(skip_ref).unwrap();
 
             for next_ref in skip_state.edges.iter() {
-                let transition = &self.nfa.states[*next_ref].token.token_type;
-                // reminder; edge = (required match to transition, next state)
-                match transition {
+                match &self.nfa.states[*next_ref].token.token_type {
                     TokenType::Character(c) => {
                         if str_data.curr_char.is_some() && *c == str_data.curr_char.unwrap() {
-                            ret.insert(*next_ref);
+                            next_states.insert(*next_ref);
                             all_empty_match = false;
                         }
                     }
                     TokenType::Dot => {
-                        ret.insert(*next_ref);
+                        next_states.insert(*next_ref);
                         all_empty_match = false;
                     }
                     TokenType::Empty => {
@@ -321,12 +322,12 @@ impl RARE {
                             skip_set.insert(*next_ref);
                         }
                     }
-                    _ => todo!(),
+                    _ => panic!("Program bug: skipping non-empty state"),
                 }
             }
         }
 
-        (ret, all_empty_match)
+        all_empty_match
     }
 }
 
